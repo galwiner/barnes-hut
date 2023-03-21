@@ -1,10 +1,11 @@
 extern crate nannou;
+use rand_distr::{Normal, Distribution};
 
 use nannou::prelude::*;
+use nannou::rand;
 
-
-const WINDOW_SIZE: f32 = 800.0;
 const CAPACITY: usize = 4;
+const WINDOW_SIZE:f32=800.0;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Particle {
@@ -17,7 +18,22 @@ pub struct Particle {
 impl Particle {
     pub fn new(x:f32,y:f32) -> Self {
         let position = Point2::new(x,y);
-        let velocity = Vec2::new(0.0, 0.0);
+        let velocity = Vec2::new(1.0, 0.0);
+        let acceleration = Vec2::new(0.0, 0.0);
+        let mass = 1.0;
+        Self {
+            position,
+            velocity,
+            acceleration,
+            mass,
+        }
+    }
+    pub fn new_random() -> Self {
+
+        let normal = Normal::new(0.0, WINDOW_SIZE/2.0).unwrap();
+        let random_sample = || normal.sample(&mut rand::thread_rng());
+        let position = Point2::new(random_sample(),random_sample());
+        let velocity = Vec2::new(1.0, 0.0);
         let acceleration = Vec2::new(0.0, 0.0);
         let mass = 1.0;
         Self {
@@ -28,12 +44,16 @@ impl Particle {
         }
     }
     pub fn draw(&self, draw: &Draw) {
+
         draw.ellipse()
             .x_y(self.position.x, self.position.y)
-            .w_h(10.0, 10.0)
-            .rgba(0.0, 1.0, 0.0, 1.0)
-            .stroke(rgba(0.0, 1.0, 0.0, 1.0))
-            .stroke_weight(2.0);
+            .w_h(5.0, 5.0)
+            .rgba(102.0/255.0, 255.0/255.0, 0.0/255.0, 0.4)
+            .stroke(rgba(0.0, 0.0, 0.0, 1.0));
+            // .stroke_weight(2.0);
+    }
+    pub fn update(&mut self) {
+        self.position += self.velocity;
     }
 }
 
@@ -120,6 +140,22 @@ impl QuadTree {
         }
 
 
+
+    }
+    pub fn update(&mut self) {
+        match self.particle_container {
+            ParticleContainer::Particles(particles) => {
+                for mut particle in particles.iter().filter(|p| p.is_some()).map(|p| p.unwrap()) {
+                    particle.update();
+                }
+            }
+            ParticleContainer::Divided => {
+                self.north_west.as_mut().unwrap().update();
+                self.north_east.as_mut().unwrap().update();
+                self.south_west.as_mut().unwrap().update();
+                self.south_east.as_mut().unwrap().update();
+            }
+        }
     }
     pub fn insert(&mut self, particle: Particle) -> bool {
         if !self.boundary.contains(&particle) {
@@ -161,7 +197,7 @@ impl QuadTree {
         let y = self.boundary.center.y;
         let width: f32 = self.boundary.width;
         let height: f32 = self.boundary.height;
-        self.particle_container = ParticleContainer::Divided;
+        self.particle_container = ParticleContainer::Divided; //i think this is bug. all the old particles should be redistributed, here they are killed...
         let north_west = QuadTree::new(Boundary::new(Point2::new(x - width / 4.0, y + height / 4.0), width / 2.0, height / 2.0));
         let north_east = QuadTree::new(Boundary::new(Point2::new(x + width / 4.0, y + height / 4.0), width / 2.0, height / 2.0));
         let south_west = QuadTree::new(Boundary::new(Point2::new(x - width / 4.0, y - height / 4.0), width / 2.0, height / 2.0));
