@@ -164,7 +164,6 @@ impl QuadTree {
 
         match self.particle_container {
             ParticleContainer::Particles(ref mut particles) => {
-                // let full = particles.iter_mut().all(|p| p.is_some());
                 let particle_array = particles.iter_mut().filter(|p| p.is_none()).next();
                 match particle_array {
                     Some(p) => {
@@ -197,7 +196,18 @@ impl QuadTree {
         let y = self.boundary.center.y;
         let width: f32 = self.boundary.width;
         let height: f32 = self.boundary.height;
-        self.particle_container = ParticleContainer::Divided; //i think this is bug. all the old particles should be redistributed, here they are killed...
+        match self.particle_container {
+            ParticleContainer::Particles(particles) => {
+
+                self.particle_container=ParticleContainer::Divided;
+                particles.iter().filter(|p| p.is_some()).map(|p| p.unwrap()).for_each(|p| {
+                    self.insert(p);
+                });
+            }
+            ParticleContainer::Divided => {} //shouldn't be here?
+        }
+
+        // self.particle_container = ParticleContainer::Divided; //i think this is bug. all the old particles should be redistributed, here they are killed...
         let north_west = QuadTree::new(Boundary::new(Point2::new(x - width / 4.0, y + height / 4.0), width / 2.0, height / 2.0));
         let north_east = QuadTree::new(Boundary::new(Point2::new(x + width / 4.0, y + height / 4.0), width / 2.0, height / 2.0));
         let south_west = QuadTree::new(Boundary::new(Point2::new(x - width / 4.0, y - height / 4.0), width / 2.0, height / 2.0));
