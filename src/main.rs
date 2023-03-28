@@ -6,7 +6,6 @@ use nannou::rand::{Rng,random_range};
 mod quad_tree;
 
 
-
 const WINDOW_SIZE:f32=800.0;
 fn main() {
     nannou::app(model).update(update).run()

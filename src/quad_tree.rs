@@ -3,7 +3,8 @@ extern crate nannou;
 use rand_distr::{Normal, Distribution};
 
 use nannou::prelude::*;
-use nannou::rand;
+use nannou::{rand, sketch};
+use nannou::color::ConvertInto;
 use nannou::winit::window::CursorIcon::Default;
 
 const CAPACITY: usize = 4;
@@ -120,14 +121,14 @@ impl Boundary {
 #[derive(Debug)]
 pub struct ParticleContainer {
     particles: [Option<Particle>; CAPACITY],
-    sub_trees: Vec<Option<Box<QuadTree>>>,
+    sub_trees: Option<Vec<Box<QuadTree>>>,
 }
 
 impl ParticleContainer {
     pub fn new() -> Self {
         Self {
             particles: [None; CAPACITY],
-            sub_trees: Vec::with_capacity(ORTHANT_NUM),
+            sub_trees: None,
         }
     }
 }
@@ -146,12 +147,12 @@ impl QuadTree {
             particle_container: ParticleContainer::new(),
         }
     }
-    pub fn new_sub_tree(&mut self, boundary: Boundary)->Self{
-        Self {
-            Boundary::new(boundary.center, boundary.width / 2.0, boundary.height / 2.0)
-            particle_container: ParticleContainer::new(),
-        }
-    }
+    // pub fn new_sub_tree(&self)->Self{
+    //     Self {
+    //         self.boundary,
+    //         particle_container: ParticleContainer::new(),
+    //     }
+    // }
 
     pub fn draw(&self, draw: &Draw) {
         self.boundary.draw(draw);
@@ -184,6 +185,11 @@ impl QuadTree {
         if !self.boundary.contains(&particle) {
             return false;
         }
+        let inserted_to_sub_tree = self.particle_container.sub_trees
+            .iter().map(|t| if t.is_none() { false } else { t.unwrap().insert(particle) })
+            .any(|r| r);
+        if inserted_to_sub_tree {return true};
+
         if self.particle_container.particles.iter().filter(|p| p.is_some()).count() < CAPACITY {
             self.particle_container.particles.iter_mut().filter(|p| p.is_none()).next().unwrap().replace(particle);
             true
@@ -198,22 +204,26 @@ impl QuadTree {
         let y = self.boundary.center.y;
         let width: f32 = self.boundary.width;
         let height: f32 = self.boundary.height;
-        self.particle_container.sub_trees.push(
-            Some(Box::new(QuadTree::new(Boundary::new(Point2::new(x - width / 4.0, y - height / 4.0), width / 2.0, height / 2.0)))));
+        // QuadTree::new_subtree(&self)
+        // self.particle_container.sub_trees.push(
+        //     Some(Box::new(QuadTree::new(Boundary::new(Point2::new(x - width / 4.0, y - height / 4.0), width / 2.0, height / 2.0)))));
+
+        // let north_west = QuadTree::new(Boundary::new(Point2::new(x - width / 4.0, y + height / 4.0), width / 2.0, height / 2.0));
+        // let north_east = QuadTree::new(Boundary::new(Point2::new(x + width / 4.0, y + height / 4.0), width / 2.0, height / 2.0));
+        // let south_west = QuadTree::new(Boundary::new(Point2::new(x - width / 4.0, y - height / 4.0), width / 2.0, height / 2.0));
+        // let south_east = QuadTree::new(Boundary::new(Point2::new(x + width / 4.0, y - height / 4.0), width / 2.0, height / 2.0));
+
+        let signs = [-1.0, 1.0];
+        let quadrants = signs.iter().flat_map(|x| signs.iter().map(|y| (x, y)));
+        let sub_trees = quadrants
+            .map(|(s1, s2)| Box::new(QuadTree::new(Boundary::new(Point2::new(x + s1 * width / 4.0, y + s2 * height / 4.0), width / 2.0, height / 2.0))))
+            .collect();
+        self.particle_container.sub_trees = Some(sub_trees);
     }
 
-    // self.particle_container = ParticleContainer::Divided; //i think this is bug. all the old particles should be redistributed, here they are killed...
-    let north_west = QuadTree::new(Boundary::new(Point2::new(x - width / 4.0, y + height / 4.0), width / 2.0, height / 2.0));
-    let north_east = QuadTree::new(Boundary::new(Point2::new(x + width / 4.0, y + height / 4.0), width / 2.0, height / 2.0));
-    let south_west = QuadTree::new(Boundary::new(Point2::new(x - width / 4.0, y - height / 4.0), width / 2.0, height / 2.0));
-    let south_east = QuadTree::new(Boundary::new(Point2::new(x + width / 4.0, y - height / 4.0), width / 2.0, height / 2.0));
-    self .north_west = Some(Box::new(north_west));
-    self .north_east = Some(Box::new(north_east));
-    self .south_west = Some(Box::new(south_west));
-    self .south_east = Some(Box::new(south_east));
 }
 
-pub fn query(self, particle: &Particle) -> bool {
-    return false;
-}
-}
+// pub fn query(self, particle: &Particle) -> bool {
+//     return false;
+// }
+
