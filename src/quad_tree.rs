@@ -1,11 +1,9 @@
 extern crate nannou;
 
-use rand_distr::{Normal, Distribution};
-
+use std::fmt;
+use nannou::rand;
 use nannou::prelude::*;
-use nannou::{rand, sketch};
-use nannou::color::ConvertInto;
-use nannou::winit::window::CursorIcon::Default;
+use rand_distr::{Distribution, Normal};
 
 const CAPACITY: usize = 4;
 const WINDOW_SIZE: f32 = 800.0;
@@ -34,12 +32,12 @@ impl Particle {
         }
     }
     pub fn new_random() -> Self {
-        let normal = Normal::new(0.0, WINDOW_SIZE / 2.0).unwrap();
+        let normal = Normal::new(0.0, WINDOW_SIZE / 10.0).unwrap();
         let random_sample = || normal.sample(&mut rand::thread_rng());
         let position = Point2::new(random_sample(), random_sample());
         let velocity = Vec2::new(1.0, 0.0);
         let acceleration = Vec2::new(0.0, 0.0);
-        let mass = 1.0;
+        let mass = 10.0;
         Self {
             position,
             velocity,
@@ -50,13 +48,13 @@ impl Particle {
     pub fn draw(&self, draw: &Draw) {
         draw.ellipse()
             .x_y(self.position.x, self.position.y)
-            .w_h(5.0, 5.0)
+            .w_h(self.mass, self.mass)
             .rgba(102.0 / 255.0, 255.0 / 255.0, 0.0 / 255.0, 0.4)
             .stroke(rgba(0.0, 0.0, 0.0, 1.0));
         // .stroke_weight(2.0);
     }
     pub fn update(&mut self) {
-        self.position += self.velocity;
+        // self.position += self.velocity;
     }
 }
 
@@ -140,6 +138,12 @@ pub struct QuadTree {
     particle_container: ParticleContainer,
 }
 
+impl fmt::Display for QuadTree {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}, {})", self.boundary.center.x, self.boundary.center.y)
+    }
+}
+
 impl QuadTree {
     pub fn new(boundary: Boundary) -> Self {
         Self {
@@ -161,10 +165,11 @@ impl QuadTree {
                 p.draw(draw);
             }
         });
+
         self.particle_container.sub_trees.iter().for_each(|t| {
-            if let Some(t) = t {
+            t.iter().for_each(|t| {
                 t.draw(draw);
-            }
+            });
         });
     }
 
@@ -175,9 +180,9 @@ impl QuadTree {
             }
         });
         self.particle_container.sub_trees.iter_mut().for_each(|t| {
-            if let Some(t) = t {
+            t.iter_mut().for_each(|t| {
                 t.update();
-            }
+            });
         });
     }
 
@@ -185,17 +190,19 @@ impl QuadTree {
         if !self.boundary.contains(&particle) {
             return false;
         }
-        let inserted_to_sub_tree = self.particle_container.sub_trees
-            .iter().map(|t| if t.is_none() { false } else { t.unwrap().insert(particle) })
-            .any(|r| r);
-        if inserted_to_sub_tree {return true};
 
         if self.particle_container.particles.iter().filter(|p| p.is_some()).count() < CAPACITY {
             self.particle_container.particles.iter_mut().filter(|p| p.is_none()).next().unwrap().replace(particle);
             true
         } else {
-            self.subdivide();
-            return self.insert(particle);
+            return if self.particle_container.sub_trees.is_none() {
+                self.subdivide();
+                self.insert(particle)
+            } else {
+                self.particle_container.sub_trees
+                    .iter_mut().map(|t| t.iter_mut().map(|t| t.insert(particle)).any(|r| r))
+                    .any(|r| r)
+            };
         }
     }
 
@@ -204,23 +211,13 @@ impl QuadTree {
         let y = self.boundary.center.y;
         let width: f32 = self.boundary.width;
         let height: f32 = self.boundary.height;
-        // QuadTree::new_subtree(&self)
-        // self.particle_container.sub_trees.push(
-        //     Some(Box::new(QuadTree::new(Boundary::new(Point2::new(x - width / 4.0, y - height / 4.0), width / 2.0, height / 2.0)))));
-
-        // let north_west = QuadTree::new(Boundary::new(Point2::new(x - width / 4.0, y + height / 4.0), width / 2.0, height / 2.0));
-        // let north_east = QuadTree::new(Boundary::new(Point2::new(x + width / 4.0, y + height / 4.0), width / 2.0, height / 2.0));
-        // let south_west = QuadTree::new(Boundary::new(Point2::new(x - width / 4.0, y - height / 4.0), width / 2.0, height / 2.0));
-        // let south_east = QuadTree::new(Boundary::new(Point2::new(x + width / 4.0, y - height / 4.0), width / 2.0, height / 2.0));
-
         let signs = [-1.0, 1.0];
-        let quadrants = signs.iter().flat_map(|x| signs.iter().map(|y| (x, y)));
-        let sub_trees = quadrants
+        let quadrants = signs.iter().flat_map(|x| signs.iter().map(move |y| (x, y)));
+        let sub_trees: Vec<Box<QuadTree>> = quadrants
             .map(|(s1, s2)| Box::new(QuadTree::new(Boundary::new(Point2::new(x + s1 * width / 4.0, y + s2 * height / 4.0), width / 2.0, height / 2.0))))
             .collect();
         self.particle_container.sub_trees = Some(sub_trees);
     }
-
 }
 
 // pub fn query(self, particle: &Particle) -> bool {
