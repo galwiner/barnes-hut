@@ -23,7 +23,7 @@ impl Particle {
         let position = Point2::new(x, y);
         let velocity = Vec2::new(1.0, 0.0);
         let acceleration = Vec2::new(0.0, 0.0);
-        let mass = 1.0;
+        let mass = 10.0;
         Self {
             position,
             velocity,
@@ -162,12 +162,14 @@ impl QuadTree {
         self.boundary.draw(draw);
         self.particle_container.particles.iter().for_each(|p| {
             if let Some(p) = p {
+                // println!("draw particle");
                 p.draw(draw);
             }
         });
 
         self.particle_container.sub_trees.iter().for_each(|t| {
             t.iter().for_each(|t| {
+                // println!("draw sub tree");
                 t.draw(draw);
             });
         });
@@ -193,6 +195,7 @@ impl QuadTree {
 
         if self.particle_container.particles.iter().filter(|p| p.is_some()).count() < CAPACITY {
             self.particle_container.particles.iter_mut().filter(|p| p.is_none()).next().unwrap().replace(particle);
+            // println!("inserted particle: {:?}", particle);
             true
         } else {
             return if self.particle_container.sub_trees.is_none() {
@@ -216,7 +219,14 @@ impl QuadTree {
         let sub_trees: Vec<Box<QuadTree>> = quadrants
             .map(|(s1, s2)| Box::new(QuadTree::new(Boundary::new(Point2::new(x + s1 * width / 4.0, y + s2 * height / 4.0), width / 2.0, height / 2.0))))
             .collect();
-        self.particle_container.sub_trees = Some(sub_trees);
+
+        sub_trees[0].as_ref()
+        self.particle_container.sub_trees = Some(dbg!(sub_trees));
+        self.particle_container.particles.iter_mut().for_each(|p| {
+            if let Some(p) = p {
+                self.particle_container.sub_trees.iter_mut().map(|t| t.iter_mut().map(|t| t.insert(p.clone())).any(|r| r)).any(|r| r);
+            }
+        });
     }
 }
 

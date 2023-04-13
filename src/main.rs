@@ -1,9 +1,9 @@
 extern crate nannou;
 
 use nannou::prelude::*;
+use nannou::rand::Rng;
+
 use crate::quad_tree::Boundary;
-use nannou::rand::{Rng,random_range};
-use nannou::window::MousePressedFn;
 
 mod quad_tree;
 
@@ -21,7 +21,7 @@ struct Model {
 fn model(app: &App) -> Model {
     let mut qt = quad_tree::QuadTree::new(Boundary::new(Point2::new(0.0,0.0),WINDOW_SIZE as f32,WINDOW_SIZE as f32));
     let _window = app.new_window().size(800, 800).view(view).mouse_pressed(handle_mouse).build().unwrap();
-    for _ in 0..5000{
+    for _ in 0..8000{
         qt.insert(quad_tree::Particle::new_random()); }
 
     // println!("{:?}", qt);
