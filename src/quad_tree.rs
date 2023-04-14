@@ -56,7 +56,11 @@ impl Particle {
             color
         }
     }
+    pub fn set_color(&mut self, color: [ColorScalar;4]){
+        self.color = color;
+    }
     pub fn draw(&self, draw: &Draw) {
+        println!("color: {:?}", self.color);
         draw.ellipse()
             .x_y(self.position.x, self.position.y)
             .w_h(self.radius*50.0, self.radius*50.0)
@@ -233,15 +237,15 @@ impl QuadTree {
         });
     }
 
-    pub fn query(&self, range: &Boundary) -> Vec<Particle> {
-        let mut particles: Vec<Particle> = Vec::new();
+    pub fn query(&self, range: &Boundary) -> Vec<&Particle> {
+        let mut particles: Vec<&Particle> = Vec::new();
         if !self.boundary.intersects(range) {
             return particles;
         }
         self.particle_container.particles.iter().for_each(|p| {
             if let Some(p) = p {
                 if range.contains(p) {
-                    particles.push(p.clone());
+                    particles.push(p);
                 }
             }
         });
