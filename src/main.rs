@@ -30,7 +30,7 @@ fn model(app: &App) -> Model {
         .mouse_moved(handle_mouse_move)
         .key_pressed(handle_key)
         .build().unwrap();
-    for _ in 0..100 {
+    for _ in 0..5000 {
         qt.insert(quad_tree::Particle::new_random());
     }
 
@@ -61,7 +61,7 @@ fn handle_mouse(app: &App, model: &mut Model, button: MouseButton) {
 fn handle_mouse_move(app: &App, model: &mut Model, _pt: Point2) {
     // println!("mouse x: {}, mouse y: {}", app.mouse.x, app.mouse.y);
     model.inspector.update(Point2::new(app.mouse.x, app.mouse.y));
-    model.qt.mutate_each_in_range(&model.inspector, &mut |p| p.set_color([1.0, 0.0, 0.0, 1.0]));
+    model.qt.highlight_in_range(&model.inspector);
 }
 
 fn handle_key(app: &App, model: &mut Model, key: Key) {

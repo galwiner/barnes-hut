@@ -283,18 +283,42 @@ impl QuadTree {
                 });
         }
     }
-}
 
-fn fix_overlapping_particles(particle_container: &mut [Option<Particle>; 4], particle: &Particle) {
-    particle_container.iter_mut().for_each(|p| {
-        if let Some(p) = p {
-            if p.position == particle.position {
-                p.position.x += p.radius;
-                p.position.y += p.radius;
+    pub fn highlight_in_range(&mut self, range: &Boundary) {
+        // self.particle_container.particles.iter_mut().flatten()
+        //     .filter(|particle| range.contains(particle))
+        //     .for_each(|particle| {
+        //         particle.set_color([1.0, 0.0, 0.0, 1.0]);
+        //     });
+        for p in &mut self.particle_container.particles {
+            match p {
+                Some(mut p) => {
+                    if range.contains(&p) {
+                        p.set_color([1.0, 0.0, 0.0, 1.0]);
+                    } else {
+                        println!("green");
+                        p.set_color([0.0, 1.0, 0.0, 1.0]);
+                    }
+                },
+                None => {}
             }
         }
-    });
+        self.mutate_each_in_range(range, &mut |particle| {
+            particle.set_color([1.0, 0.0, 0.0, 1.0]);
+        });
+    }
 }
+    fn fix_overlapping_particles(particle_container: &mut [Option<Particle>; 4], particle: &Particle) {
+        particle_container.iter_mut().for_each(|p| {
+            if let Some(p) = p {
+                if p.position == particle.position {
+                    p.position.x += p.radius;
+                    p.position.y += p.radius;
+                }
+            }
+        });
+    }
+
 
 
 
