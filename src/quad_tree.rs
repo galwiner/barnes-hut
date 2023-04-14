@@ -20,7 +20,6 @@ pub struct Particle {
     acceleration: Vec2,
     mass: f32,
     radius: f32,
-    pub(crate) color: [ColorScalar; 4],
 }
 
 impl Particle {
@@ -30,14 +29,12 @@ impl Particle {
         let acceleration = Vec2::new(0.0, 0.0);
         let mass = 10.0;
         let radius = 0.1;
-        let color = [0.0, 1.0, 0.0, 1.0];
         Self {
             position,
             velocity,
             acceleration,
             mass,
             radius,
-            color,
         }
     }
     pub fn new_random() -> Self {
@@ -48,18 +45,13 @@ impl Particle {
         let acceleration = Vec2::new(0.0, 0.0);
         let mass = 10.0;
         let radius = 0.1;
-        let color = [0.0, 1.0, 0.0, 1.0];
         Self {
             position,
             velocity,
             acceleration,
             mass,
             radius,
-            color,
         }
-    }
-    pub fn set_color(&mut self, color: [ColorScalar; 4]) {
-        self.color = color;
     }
     pub fn draw(&self, draw: &Draw, model: &Model) {
         let color = if model.inspector.contains(self) { RED } else { GREEN };
