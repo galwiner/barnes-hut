@@ -1,6 +1,7 @@
 extern crate nannou;
 
 use std::fmt;
+use nannou::draw::properties::ColorScalar;
 use nannou::rand;
 use nannou::prelude::*;
 use rand_distr::{Distribution, Normal};
@@ -16,6 +17,8 @@ pub struct Particle {
     velocity: Vec2,
     acceleration: Vec2,
     mass: f32,
+    radius: f32,
+    pub(crate) color: [ColorScalar;4],
 }
 
 impl Particle {
@@ -24,11 +27,15 @@ impl Particle {
         let velocity = Vec2::new(1.0, 0.0);
         let acceleration = Vec2::new(0.0, 0.0);
         let mass = 10.0;
+        let radius = 0.1;
+        let color = [0.0, 1.0, 0.0, 1.0];
         Self {
             position,
             velocity,
             acceleration,
             mass,
+            radius,
+            color
         }
     }
     pub fn new_random() -> Self {
@@ -38,20 +45,24 @@ impl Particle {
         let velocity = Vec2::new(1.0, 0.0);
         let acceleration = Vec2::new(0.0, 0.0);
         let mass = 10.0;
+        let radius = 0.1;
+        let color = [0.0, 1.0, 0.0, 1.0];
         Self {
             position,
             velocity,
             acceleration,
             mass,
+            radius,
+            color
         }
     }
     pub fn draw(&self, draw: &Draw) {
         draw.ellipse()
             .x_y(self.position.x, self.position.y)
-            .w_h(self.mass, self.mass)
-            .rgba(102.0 / 255.0, 255.0 / 255.0, 0.0 / 255.0, 0.4)
+            .w_h(self.radius*50.0, self.radius*50.0)
+            .rgba(self.color[0], self.color[1], self.color[2], self.color[3])
             .stroke(rgba(0.0, 0.0, 0.0, 1.0));
-        // .stroke_weight(2.0);
+
     }
     pub fn update(&mut self) {
         // self.position += self.velocity;
@@ -99,23 +110,20 @@ impl Boundary {
         }
         true
     }
-
+    pub fn update(&mut self, center: Point2) {
+        self.center = center;
+    }
     pub fn draw(&self, draw: &Draw) {
         draw.rect()
             .x_y(self.center.x, self.center.y)
             .w_h(self.width, self.height)
-            .rgba(0.0, 0.0, 0.0, 1.0)
+            .rgba(0.0, 0.0, 0.0, 0.0)
             .stroke(rgba(1.0, 0.0, 0.0, 1.0))
             .stroke_weight(1.0);
     }
 }
 
-//
-// #[derive(PartialEq, Debug)]
-// enum ParticleContainer {
-//     Particles([Option<Particle>; CAPACITY]),
-//     Divided,
-// }
+
 #[derive(Debug)]
 pub struct ParticleContainer {
     particles: [Option<Particle>; CAPACITY],
@@ -134,8 +142,9 @@ impl ParticleContainer {
 
 #[derive(Debug)]
 pub struct QuadTree {
-    boundary: Boundary,
-    particle_container: ParticleContainer,
+    pub draw_particles: bool,
+    pub boundary: Boundary,
+    pub particle_container: ParticleContainer,
 }
 
 impl fmt::Display for QuadTree {
@@ -147,25 +156,21 @@ impl fmt::Display for QuadTree {
 impl QuadTree {
     pub fn new(boundary: Boundary) -> Self {
         Self {
+            draw_particles: true,
             boundary,
             particle_container: ParticleContainer::new(),
         }
     }
-    // pub fn new_sub_tree(&self)->Self{
-    //     Self {
-    //         self.boundary,
-    //         particle_container: ParticleContainer::new(),
-    //     }
-    // }
 
     pub fn draw(&self, draw: &Draw) {
         self.boundary.draw(draw);
-        self.particle_container.particles.iter().for_each(|p| {
-            if let Some(p) = p {
-                // println!("draw particle");
-                p.draw(draw);
-            }
-        });
+        if self.draw_particles {
+            self.particle_container.particles.iter().for_each(|p| {
+                if let Some(p) = p {
+                    p.draw(draw);
+                }
+            });
+        }
 
         self.particle_container.sub_trees.iter().for_each(|t| {
             t.iter().for_each(|t| {
@@ -194,8 +199,8 @@ impl QuadTree {
         }
 
         if self.particle_container.particles.iter().filter(|p| p.is_some()).count() < CAPACITY {
+            fix_overlapping_particles(&mut self.particle_container.particles, &particle);
             self.particle_container.particles.iter_mut().filter(|p| p.is_none()).next().unwrap().replace(particle);
-            // println!("inserted particle: {:?}", particle);
             true
         } else {
             return if self.particle_container.sub_trees.is_none() {
@@ -220,17 +225,45 @@ impl QuadTree {
             .map(|(s1, s2)| Box::new(QuadTree::new(Boundary::new(Point2::new(x + s1 * width / 4.0, y + s2 * height / 4.0), width / 2.0, height / 2.0))))
             .collect();
 
-        sub_trees[0].as_ref()
-        self.particle_container.sub_trees = Some(dbg!(sub_trees));
+        self.particle_container.sub_trees = Some(sub_trees);
         self.particle_container.particles.iter_mut().for_each(|p| {
             if let Some(p) = p {
                 self.particle_container.sub_trees.iter_mut().map(|t| t.iter_mut().map(|t| t.insert(p.clone())).any(|r| r)).any(|r| r);
             }
         });
     }
+
+    pub fn query(&self, range: &Boundary) -> Vec<Particle> {
+        let mut particles: Vec<Particle> = Vec::new();
+        if !self.boundary.intersects(range) {
+            return particles;
+        }
+        self.particle_container.particles.iter().for_each(|p| {
+            if let Some(p) = p {
+                if range.contains(p) {
+                    particles.push(p.clone());
+                }
+            }
+        });
+        if let Some(sub_trees) = &self.particle_container.sub_trees {
+            sub_trees.iter().for_each(|t| {
+                particles.append(&mut t.query(range));
+            });
+        }
+        // println!("particles: {:?}", particles);
+        particles
+    }
+}
+fn fix_overlapping_particles(particle_container: &mut [Option<Particle>; 4], particle: &Particle) {
+    particle_container.iter_mut().for_each(|p| {
+        if let Some(p) = p {
+            if p.position == particle.position {
+                p.position.x += p.radius;
+                p.position.y += p.radius;
+            }
+        }
+    });
 }
 
-// pub fn query(self, particle: &Particle) -> bool {
-//     return false;
-// }
+
 
