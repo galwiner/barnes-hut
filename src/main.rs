@@ -61,7 +61,6 @@ fn handle_mouse(app: &App, model: &mut Model, button: MouseButton) {
 fn handle_mouse_move(app: &App, model: &mut Model, _pt: Point2) {
     // println!("mouse x: {}, mouse y: {}", app.mouse.x, app.mouse.y);
     model.inspector.update(Point2::new(app.mouse.x, app.mouse.y));
-    model.qt.highlight_in_range(&model.inspector);
 }
 
 fn handle_key(app: &App, model: &mut Model, key: Key) {

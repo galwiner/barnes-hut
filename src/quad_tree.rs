@@ -61,13 +61,13 @@ impl Particle {
     pub fn set_color(&mut self, color: [ColorScalar; 4]) {
         self.color = color;
     }
-    pub fn draw(&self, draw: &Draw) {
-        // println!("color: {:?}", self.color);
+    pub fn draw(&self, draw: &Draw, model: &Model) {
+        let color = if model.inspector.contains(self) { RED } else { GREEN };
         draw.ellipse()
             .x_y(self.position.x, self.position.y)
-            .w_h(self.radius * 50.0, self.radius * 50.0)
-            .rgba(self.color[0], self.color[1], self.color[2], self.color[3])
-            .stroke(rgba(0.0, 0.0, 0.0, 1.0));
+            .w_h(self.radius * 20.0, self.radius * 20.0)
+            .stroke(rgba(0.0, 0.0, 0.0, 1.0))
+            .color(color);
     }
     pub fn update(&mut self) {
         // self.position += self.velocity;
@@ -136,7 +136,7 @@ impl Boundary {
             .w_h(self.width, self.height)
             .rgba(0.0, 0.0, 0.0, 0.0)
             .stroke(rgba(1.0, 0.0, 0.0, 1.0))
-            .stroke_weight(1.0);
+            .stroke_weight(0.5);
     }
 }
 
@@ -182,7 +182,7 @@ impl QuadTree {
         if model.draw_particles {
             self.particle_container.particles.iter().for_each(|p| {
                 if let Some(p) = p {
-                    p.draw(draw);
+                    p.draw(draw, model);
                 }
             });
         }
@@ -268,56 +268,18 @@ impl QuadTree {
         // println!("particles: {:?}", particles);
         particles
     }
-
-    pub fn mutate_each_in_range<F>(&mut self, range: &Boundary, mut operation: &mut F)
-        where F: FnMut(&mut Particle)
-    {
-        if self.boundary.intersects(range) {
-            self.particle_container.particles.iter_mut().flatten()
-                .filter(|particle| range.contains(particle))
-                .for_each(&mut operation);
-
-            self.particle_container.sub_trees.iter_mut().flatten()
-                .for_each(|subtree| {
-                    subtree.mutate_each_in_range(range, operation);
-                });
-        }
-    }
-
-    pub fn highlight_in_range(&mut self, range: &Boundary) {
-        // self.particle_container.particles.iter_mut().flatten()
-        //     .filter(|particle| range.contains(particle))
-        //     .for_each(|particle| {
-        //         particle.set_color([1.0, 0.0, 0.0, 1.0]);
-        //     });
-        for p in &mut self.particle_container.particles {
-            match p {
-                Some(mut p) => {
-                    if range.contains(&p) {
-                        p.set_color([1.0, 0.0, 0.0, 1.0]);
-                    } else {
-                        println!("green");
-                        p.set_color([0.0, 1.0, 0.0, 1.0]);
-                    }
-                },
-                None => {}
-            }
-        }
-        self.mutate_each_in_range(range, &mut |particle| {
-            particle.set_color([1.0, 0.0, 0.0, 1.0]);
-        });
-    }
 }
-    fn fix_overlapping_particles(particle_container: &mut [Option<Particle>; 4], particle: &Particle) {
-        particle_container.iter_mut().for_each(|p| {
-            if let Some(p) = p {
-                if p.position == particle.position {
-                    p.position.x += p.radius;
-                    p.position.y += p.radius;
-                }
+
+fn fix_overlapping_particles(particle_container: &mut [Option<Particle>; 4], particle: &Particle) {
+    particle_container.iter_mut().for_each(|p| {
+        if let Some(p) = p {
+            if p.position == particle.position {
+                p.position.x += p.radius;
+                p.position.y += p.radius;
             }
-        });
-    }
+        }
+    });
+}
 
 
 
