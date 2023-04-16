@@ -1,13 +1,14 @@
+use nannou::color::{rgba, GREEN, RED};
 use nannou::geom::{Point2, Vec2};
-use rand_distr::Normal;
-use nannou::{Draw, rand};
-use nannou::color::{GREEN, RED, rgba};
 use nannou::rand::distributions::Distribution;
-use crate::Model;
+use nannou::{rand, Draw};
+use rand_distr::Normal;
+
 use crate::constants::WINDOW_SIZE;
 use crate::drawable::Drawable;
 use crate::entity::Entity;
 use crate::geometry::Positioned;
+use crate::Model;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Particle {
@@ -59,7 +60,11 @@ impl Positioned for Particle {
 
 impl Drawable for Particle {
     fn draw(&self, draw: &Draw, model: &Model) {
-        let color = if model.inspector.contains_point(&self.position) { RED } else { GREEN };
+        let color = if model.inspector.contains_point(&self.position) {
+            RED
+        } else {
+            GREEN
+        };
         draw.ellipse()
             .x_y(self.position.x, self.position.y)
             .w_h(self.radius * 20.0, self.radius * 20.0)

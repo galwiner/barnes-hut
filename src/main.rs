@@ -8,20 +8,18 @@ use crate::geometry::BoundingBox;
 use crate::particle::Particle;
 use crate::quad_tree::QuadTree;
 
-mod quad_tree;
-mod particle;
 mod constants;
-mod geometry;
-mod entity;
 mod drawable;
-
+mod entity;
+mod geometry;
+mod particle;
+mod quad_tree;
 
 const WINDOW_SIZE: u32 = 800;
 
 fn main() {
     nannou::app(model).update(update).run()
 }
-
 
 pub struct Model {
     inspector: BoundingBox,
@@ -31,20 +29,29 @@ pub struct Model {
 
 fn model(app: &App) -> Model {
     let inspector = BoundingBox::about_point(&app.mouse.position(), 100.0);
-    let mut qt = QuadTree::new(BoundingBox::about_point(&Point2::new(0.0, 0.0), WINDOW_SIZE as f32));
-    let _window = app.new_window().size(WINDOW_SIZE, WINDOW_SIZE)
+    let mut qt = QuadTree::new(BoundingBox::about_point(
+        &Point2::new(0.0, 0.0),
+        WINDOW_SIZE as f32,
+    ));
+    let _window = app
+        .new_window()
+        .size(WINDOW_SIZE, WINDOW_SIZE)
         .view(view)
         .mouse_pressed(handle_mouse)
         .mouse_moved(handle_mouse_move)
         .key_pressed(handle_key)
-        .build().unwrap();
+        .build()
+        .unwrap();
     for _ in 0..5000 {
-        qt.insert(particle::Particle::new_random());
+        qt.insert(Particle::new_random());
     }
 
-    Model { inspector, qt, draw_particles: true }
+    Model {
+        inspector,
+        qt,
+        draw_particles: true,
+    }
 }
-
 
 fn update(app: &App, model: &mut Model, _update: Update) {
     model.qt.update();
@@ -63,7 +70,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 }
 
 fn handle_mouse(app: &App, model: &mut Model, _button: MouseButton) {
-    model.qt.insert(particle::Particle::new(app.mouse.x, app.mouse.y));
+    model.qt.insert(Particle::new(app.mouse.x, app.mouse.y));
 }
 
 fn handle_mouse_move(app: &App, model: &mut Model, _pt: Point2) {

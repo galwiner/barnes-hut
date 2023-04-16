@@ -21,7 +21,10 @@ pub struct QuadTree<Leaf> {
     pub children: QuadTreeChildren<Leaf>,
 }
 
-impl<Leaf> QuadTree<Leaf> where Leaf: Positioned {
+impl<Leaf> QuadTree<Leaf>
+where
+    Leaf: Positioned,
+{
     pub fn new(boundary: BoundingBox) -> Self {
         Self {
             boundary,
@@ -29,7 +32,10 @@ impl<Leaf> QuadTree<Leaf> where Leaf: Positioned {
         }
     }
 
-    pub fn insert(&mut self, item: Leaf) -> bool where Leaf: Positioned {
+    pub fn insert(&mut self, item: Leaf) -> bool
+    where
+        Leaf: Positioned,
+    {
         let position = item.position();
         if !self.boundary.contains_point(&position) {
             return false;
@@ -39,7 +45,12 @@ impl<Leaf> QuadTree<Leaf> where Leaf: Positioned {
             Leaves(leaves) => {
                 leaves.push(item);
                 if leaves.len() > MAX_LEAVES {
-                    if leaves.iter().filter(|leaf| leaf.position() == position).count() > 1 {
+                    if leaves
+                        .iter()
+                        .filter(|leaf| leaf.position() == position)
+                        .count()
+                        > 1
+                    {
                         println!("Not subdividing node with {} leaves as new leaf repeats an existing position", leaves.len());
                         return true;
                     }
@@ -53,7 +64,9 @@ impl<Leaf> QuadTree<Leaf> where Leaf: Positioned {
                         _ => panic!("swapped_children should be Leaves"),
                     }
                     true
-                } else { false }
+                } else {
+                    false
+                }
             }
             Nodes(nodes) => {
                 for node in nodes.iter_mut() {
@@ -73,7 +86,10 @@ impl<Leaf> Positioned for QuadTree<Leaf> {
     }
 }
 
-impl<Leaf> Entity for QuadTree<Leaf> where Leaf: Entity {
+impl<Leaf> Entity for QuadTree<Leaf>
+where
+    Leaf: Entity,
+{
     fn update(&mut self) {
         match &mut self.children {
             Leaves(leaves) => {
@@ -113,5 +129,3 @@ impl<Leaf> Entity for QuadTree<Leaf> where Leaf: Entity {
 //         particles
 //     }
 // }
-
-

@@ -1,10 +1,11 @@
 use nannou::color::IntoLinSrgba;
-use nannou::Draw;
 use nannou::draw::properties::ColorScalar;
 use nannou::prelude::RED;
+use nannou::Draw;
+
 use crate::geometry::BoundingBox;
-use crate::Model;
 use crate::quad_tree::{QuadTree, QuadTreeChildren};
+use crate::Model;
 
 pub trait Drawable {
     fn draw(&self, draw: &Draw, model: &Model);
@@ -17,7 +18,11 @@ impl<Leaf: Drawable> Drawable for QuadTree<Leaf> {
     }
 }
 
-pub fn draw_bounding_box(boundary: &BoundingBox, draw: &Draw, color: impl IntoLinSrgba<ColorScalar>) {
+pub fn draw_bounding_box(
+    boundary: &BoundingBox,
+    draw: &Draw,
+    color: impl IntoLinSrgba<ColorScalar>,
+) {
     let center = boundary.center();
     let size = boundary.size();
     draw.rect()
