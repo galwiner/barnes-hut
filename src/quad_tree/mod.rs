@@ -9,17 +9,20 @@ use QuadTreeChildren::{Leaves, Nodes};
 use crate::drawable::Drawable;
 use crate::entity::Entity;
 use crate::geometry::{BoundingBox, Positioned};
+pub use crate::quad_tree::iterator::Iter;
 use crate::{drawable, Model};
 
 mod iterator;
 
 pub const MAX_LEAVES: usize = 4;
 
+#[derive(Debug)]
 pub enum QuadTreeChildren<Leaf> {
     Leaves(Vec<Leaf>),
     Nodes(Box<[QuadTree<Leaf>; 4]>),
 }
 
+#[derive(Debug)]
 pub struct QuadTree<Leaf> {
     boundary: BoundingBox,
     children: QuadTreeChildren<Leaf>,
@@ -31,6 +34,10 @@ impl<Leaf> QuadTree<Leaf> {
             boundary,
             children: Leaves(Vec::new()),
         }
+    }
+
+    pub fn iter(&self) -> Iter<Leaf> {
+        Iter::new(self)
     }
 
     pub fn insert(&mut self, item: Leaf) -> bool
