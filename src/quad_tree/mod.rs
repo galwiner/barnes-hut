@@ -6,8 +6,12 @@ use nannou::prelude::*;
 
 use QuadTreeChildren::{Leaves, Nodes};
 
+use crate::drawable::Drawable;
 use crate::entity::Entity;
 use crate::geometry::{BoundingBox, Positioned};
+use crate::{drawable, Model};
+
+mod iterator;
 
 pub const MAX_LEAVES: usize = 4;
 
@@ -17,14 +21,11 @@ pub enum QuadTreeChildren<Leaf> {
 }
 
 pub struct QuadTree<Leaf> {
-    pub boundary: BoundingBox,
-    pub children: QuadTreeChildren<Leaf>,
+    boundary: BoundingBox,
+    children: QuadTreeChildren<Leaf>,
 }
 
-impl<Leaf> QuadTree<Leaf>
-where
-    Leaf: Positioned,
-{
+impl<Leaf> QuadTree<Leaf> {
     pub fn new(boundary: BoundingBox) -> Self {
         Self {
             boundary,
@@ -37,7 +38,7 @@ where
         Leaf: Positioned,
     {
         let position = item.position();
-        if !self.boundary.contains_point(&position) {
+        if !self.boundary.contains(position) {
             return false;
         }
 
@@ -54,7 +55,7 @@ where
                         println!("Not subdividing node with {} leaves as new leaf repeats an existing position", leaves.len());
                         return true;
                     }
-                    let subtrees = self.boundary.subdivide().map(QuadTree::<Leaf>::new);
+                    let subtrees = self.boundary.subdivisions().map(QuadTree::<Leaf>::new);
                     let mut swapped_children = Nodes(Box::new(subtrees));
                     swap(&mut self.children, &mut swapped_children);
                     match swapped_children {
@@ -70,7 +71,7 @@ where
             }
             Nodes(nodes) => {
                 for node in nodes.iter_mut() {
-                    if node.boundary.contains_point(&position) {
+                    if node.boundary.contains(position) {
                         return node.insert(item);
                     }
                 }
@@ -82,7 +83,27 @@ where
 
 impl<Leaf> Positioned for QuadTree<Leaf> {
     fn position(&self) -> Point2 {
-        self.boundary.center()
+        self.boundary.xy()
+    }
+}
+
+impl<Leaf: Drawable> Drawable for QuadTree<Leaf> {
+    fn draw(&self, draw: &Draw, model: &Model) {
+        drawable::draw_bounding_box(self.boundary, draw, RED);
+        self.children.draw(draw, model);
+    }
+}
+
+impl<Leaf: Drawable> Drawable for QuadTreeChildren<Leaf> {
+    fn draw(&self, draw: &Draw, model: &Model) {
+        match self {
+            Leaves(leaves) => {
+                leaves.iter().for_each(|leaf| leaf.draw(draw, model));
+            }
+            Nodes(nodes) => {
+                nodes.iter().for_each(|node| node.draw(draw, model));
+            }
+        }
     }
 }
 

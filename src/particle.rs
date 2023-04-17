@@ -1,5 +1,6 @@
-use nannou::color::{rgba, GREEN, RED};
+use nannou::color::{GREEN, RED};
 use nannou::geom::{Point2, Vec2};
+use nannou::prelude::BLACK;
 use nannou::rand::distributions::Distribution;
 use nannou::{rand, Draw};
 use rand_distr::Normal;
@@ -60,7 +61,7 @@ impl Positioned for Particle {
 
 impl Drawable for Particle {
     fn draw(&self, draw: &Draw, model: &Model) {
-        let color = if model.inspector.contains_point(&self.position) {
+        let color = if model.inspector.contains(self.position) {
             RED
         } else {
             GREEN
@@ -68,7 +69,7 @@ impl Drawable for Particle {
         draw.ellipse()
             .x_y(self.position.x, self.position.y)
             .w_h(self.radius * 20.0, self.radius * 20.0)
-            .stroke(rgba(0.0, 0.0, 0.0, 1.0))
+            .stroke(BLACK)
             .color(color);
     }
 }
