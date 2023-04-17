@@ -3,6 +3,7 @@ use std::slice;
 use itertools::Either;
 use Either::{Left, Right};
 
+use crate::geometry::{BoundingBox, Positioned};
 use crate::quad_tree::QuadTree;
 use crate::quad_tree::QuadTreeChildren::{Leaves, Nodes};
 
@@ -13,8 +14,6 @@ pub enum TreePosition<'a, Leaf> {
 }
 
 pub trait TreeIterator: Iterator {
-    type Leaf;
-
     fn leaves<'a, Leaf>(self) -> LeafIter<Self>
     where
         Self: Sized + Iterator<Item = TreePosition<'a, Leaf>>,
@@ -29,6 +28,14 @@ pub trait TreeIterator: Iterator {
         Leaf: 'a,
     {
         NodeIter::new(self)
+    }
+
+    fn bounded<'a, Leaf>(self, bounds: BoundingBox) -> Bounded<Self>
+    where
+        Self: Sized + Iterator<Item = TreePosition<'a, Leaf>>,
+        Leaf: 'a,
+    {
+        Bounded::new(self, bounds)
     }
 
     /// Skip all nodes/leaves under the last visited node if any remain.
@@ -61,8 +68,6 @@ impl<'a, Leaf> DepthFirstIter<'a, Leaf> {
 }
 
 impl<'a, Leaf> TreeIterator for DepthFirstIter<'a, Leaf> {
-    type Leaf = Leaf;
-
     fn skip_subtree(&mut self) {
         self.ascend();
     }
@@ -143,8 +148,6 @@ where
     Inner: TreeIterator<Item = TreePosition<'a, Leaf>>,
     Leaf: 'a,
 {
-    type Leaf = Inner::Leaf;
-
     fn skip_subtree(&mut self) {
         self.inner.skip_subtree();
     }
@@ -186,8 +189,58 @@ where
     Inner: TreeIterator<Item = TreePosition<'a, Leaf>>,
     Leaf: 'a,
 {
-    type Leaf = Inner::Leaf;
+    fn skip_subtree(&mut self) {
+        self.inner.skip_subtree();
+    }
+}
 
+#[must_use = "iterators are lazy and do nothing unless consumed"]
+#[derive(Clone)]
+pub struct Bounded<Inner> {
+    inner: Inner,
+    bounds: BoundingBox,
+}
+
+impl<Inner> Bounded<Inner> {
+    fn new(inner: Inner, bounds: BoundingBox) -> Self {
+        Self { inner, bounds }
+    }
+}
+
+impl<'a, Leaf, Inner> Iterator for Bounded<Inner>
+where
+    Inner: TreeIterator<Item = TreePosition<'a, Leaf>>,
+    Leaf: 'a,
+    Leaf: Positioned,
+{
+    type Item = Inner::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.inner.next() {
+                Some(TreePosition::Leaf(leaf)) => {
+                    if self.bounds.contains(leaf.position()) {
+                        return Some(TreePosition::Leaf(leaf));
+                    }
+                }
+                Some(TreePosition::Node(node)) => {
+                    if self.bounds.overlap(node.boundary).is_some() {
+                        return Some(TreePosition::Node(node));
+                    }
+                    self.inner.skip_subtree();
+                }
+                None => return None,
+            }
+        }
+    }
+}
+
+impl<'a, Leaf, Inner> TreeIterator for Bounded<Inner>
+where
+    Inner: TreeIterator<Item = TreePosition<'a, Leaf>>,
+    Leaf: 'a,
+    Leaf: Positioned,
+{
     fn skip_subtree(&mut self) {
         self.inner.skip_subtree();
     }
@@ -210,17 +263,20 @@ mod tests {
             tree.insert(pt2(x as f32, x as f32));
         });
 
-        let xs = tree
+        let bounded = tree
             .iter()
+            .bounded(BoundingBox::from_corner_points([-2.0, -2.0], [3.0, 3.0]));
+        let xs = bounded
+            .clone()
             .leaves()
             .map(|p| p.x as i32)
             .sorted()
             .collect_vec();
         println!("leaves at: {xs:?}");
 
-        assert!(xs == (-9..9).collect_vec());
+        assert_eq!(xs, (-2..=3).collect_vec());
 
-        let node_iter = tree.iter().nodes();
+        let node_iter = bounded.clone().nodes();
         println!(
             "nodes ({}) at: {}",
             node_iter.clone().count(),

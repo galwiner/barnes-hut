@@ -17,7 +17,7 @@ mod iterator;
 pub const MAX_LEAVES: usize = 4;
 
 #[derive(Debug)]
-pub enum QuadTreeChildren<Leaf> {
+enum QuadTreeChildren<Leaf> {
     Leaves(Vec<Leaf>),
     Nodes(Box<[QuadTree<Leaf>; 4]>),
 }
