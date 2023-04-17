@@ -9,7 +9,7 @@ use QuadTreeChildren::{Leaves, Nodes};
 use crate::drawable::Drawable;
 use crate::entity::Entity;
 use crate::geometry::{BoundingBox, Positioned};
-pub use crate::quad_tree::iterator::Iter;
+pub use crate::quad_tree::iterator::DepthFirstIter;
 use crate::{drawable, Model};
 
 mod iterator;
@@ -36,8 +36,8 @@ impl<Leaf> QuadTree<Leaf> {
         }
     }
 
-    pub fn iter(&self) -> Iter<Leaf> {
-        Iter::new(self)
+    pub fn iter(&self) -> DepthFirstIter<Leaf> {
+        DepthFirstIter::new(self)
     }
 
     pub fn insert(&mut self, item: Leaf) -> bool

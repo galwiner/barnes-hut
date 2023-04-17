@@ -6,37 +6,47 @@ use Either::{Left, Right};
 use crate::quad_tree::QuadTree;
 use crate::quad_tree::QuadTreeChildren::{Leaves, Nodes};
 
+#[must_use = "iterators are lazy and do nothing unless consumed"]
 pub enum TreePosition<'a, Leaf> {
     Leaf(&'a Leaf),
     Node(&'a QuadTree<Leaf>),
 }
 
+pub trait TreeIterator: Iterator {
+    type Leaf;
+
+    fn leaves<'a, Leaf>(self) -> LeafIter<Self>
+    where
+        Self: Sized + Iterator<Item = TreePosition<'a, Leaf>>,
+        Leaf: 'a,
+    {
+        LeafIter::new(self)
+    }
+
+    fn nodes<'a, Leaf>(self) -> NodeIter<Self>
+    where
+        Self: Sized + Iterator<Item = TreePosition<'a, Leaf>>,
+        Leaf: 'a,
+    {
+        NodeIter::new(self)
+    }
+
+    /// Skip all nodes/leaves under the last visited node if any remain.
+    fn skip_subtree(&mut self);
+}
+
 #[derive(Clone)]
-pub struct Iter<'a, Leaf> {
+pub struct DepthFirstIter<'a, Leaf> {
     children: Either<&'a [Leaf], &'a [QuadTree<Leaf>]>,
     parent: Option<Box<Self>>,
 }
 
-#[derive(Clone)]
-pub struct LeafIter<'a, Leaf>(Iter<'a, Leaf>);
-
-#[derive(Clone)]
-pub struct NodeIter<'a, Leaf>(Iter<'a, Leaf>);
-
-impl<'a, Leaf> Iter<'a, Leaf> {
+impl<'a, Leaf> DepthFirstIter<'a, Leaf> {
     pub(super) fn new(tree: &'a QuadTree<Leaf>) -> Self {
         Self {
             children: Right(slice::from_ref(tree)),
             parent: None,
         }
-    }
-
-    pub fn leaves(self) -> LeafIter<'a, Leaf> {
-        LeafIter(self)
-    }
-
-    pub fn nodes(self) -> NodeIter<'a, Leaf> {
-        NodeIter(self)
     }
 
     fn ascend(&mut self) -> bool {
@@ -50,7 +60,15 @@ impl<'a, Leaf> Iter<'a, Leaf> {
     }
 }
 
-impl<'a, Leaf> Iterator for Iter<'a, Leaf> {
+impl<'a, Leaf> TreeIterator for DepthFirstIter<'a, Leaf> {
+    type Leaf = Leaf;
+
+    fn skip_subtree(&mut self) {
+        self.ascend();
+    }
+}
+
+impl<'a, Leaf> Iterator for DepthFirstIter<'a, Leaf> {
     type Item = TreePosition<'a, Leaf>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -83,7 +101,7 @@ impl<'a, Leaf> Iterator for Iter<'a, Leaf> {
     }
 }
 
-impl<Leaf> Default for Iter<'_, Leaf> {
+impl<Leaf> Default for DepthFirstIter<'_, Leaf> {
     fn default() -> Self {
         Self {
             children: Left(&[]),
@@ -92,11 +110,27 @@ impl<Leaf> Default for Iter<'_, Leaf> {
     }
 }
 
-impl<'a, Leaf> Iterator for LeafIter<'a, Leaf> {
+#[derive(Clone)]
+#[must_use = "iterators are lazy and do nothing unless consumed"]
+pub struct LeafIter<Inner> {
+    inner: Inner,
+}
+
+impl<Inner> LeafIter<Inner> {
+    fn new(inner: Inner) -> Self {
+        Self { inner }
+    }
+}
+
+impl<'a, Leaf, Inner> Iterator for LeafIter<Inner>
+where
+    Inner: TreeIterator<Item = TreePosition<'a, Leaf>>,
+    Leaf: 'a,
+{
     type Item = &'a Leaf;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.0.next() {
+        match self.inner.next() {
             Some(TreePosition::Leaf(leaf)) => Some(leaf),
             Some(TreePosition::Node(_)) => self.next(),
             None => None,
@@ -104,18 +138,58 @@ impl<'a, Leaf> Iterator for LeafIter<'a, Leaf> {
     }
 }
 
-impl<'a, Leaf> Iterator for NodeIter<'a, Leaf> {
+impl<'a, Leaf, Inner> TreeIterator for LeafIter<Inner>
+where
+    Inner: TreeIterator<Item = TreePosition<'a, Leaf>>,
+    Leaf: 'a,
+{
+    type Leaf = Inner::Leaf;
+
+    fn skip_subtree(&mut self) {
+        self.inner.skip_subtree();
+    }
+}
+
+#[must_use = "iterators are lazy and do nothing unless consumed"]
+#[derive(Clone)]
+pub struct NodeIter<Inner> {
+    inner: Inner,
+}
+
+impl<Inner> NodeIter<Inner> {
+    fn new(inner: Inner) -> Self {
+        Self { inner }
+    }
+}
+
+impl<'a, Leaf, Inner> Iterator for NodeIter<Inner>
+where
+    Inner: TreeIterator<Item = TreePosition<'a, Leaf>>,
+    Leaf: 'a,
+{
     type Item = &'a QuadTree<Leaf>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.0.next() {
+        match self.inner.next() {
             Some(TreePosition::Leaf(_)) => {
-                self.0.ascend();
+                self.inner.skip_subtree();
                 self.next()
             }
             Some(TreePosition::Node(node)) => Some(node),
             None => None,
         }
+    }
+}
+
+impl<'a, Leaf, Inner> TreeIterator for NodeIter<Inner>
+where
+    Inner: TreeIterator<Item = TreePosition<'a, Leaf>>,
+    Leaf: 'a,
+{
+    type Leaf = Inner::Leaf;
+
+    fn skip_subtree(&mut self) {
+        self.inner.skip_subtree();
     }
 }
 
