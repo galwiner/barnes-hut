@@ -16,6 +16,7 @@ pub fn draw_all(model: &Model, draw: &Draw, frame: BoundingBox) {
 }
 
 fn draw_tree(tree: &QuadTree<Particle>, draw: &Draw, model: &Model, frame: BoundingBox) {
+
     tree.iter()
         .bounded(frame)
         .for_each(|position| match position {
@@ -26,11 +27,13 @@ fn draw_tree(tree: &QuadTree<Particle>, draw: &Draw, model: &Model, frame: Bound
                 } else {
                     color::GREEN
                 };
-                draw.ellipse()
-                    .xy(position)
-                    .w_h(2.0, 2.0)
-                    .stroke(color::BLACK)
-                    .color(color);
+                if model.draw_particles {
+                    draw.ellipse()
+                        .xy(position)
+                        .w_h(10.0, 10.0)
+                        .stroke(color::BLACK)
+                        .color(color);
+                }
             }
             TreePosition::Node(node) => draw_rect(node.boundary, draw, color::RED),
         });
