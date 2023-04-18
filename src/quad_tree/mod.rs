@@ -6,13 +6,10 @@ use nannou::prelude::*;
 
 use QuadTreeChildren::{Leaves, Nodes};
 
-use crate::drawable::Drawable;
-use crate::entity::Entity;
 use crate::geometry::{BoundingBox, Positioned};
 pub use crate::quad_tree::iterator::DepthFirstIter;
-use crate::{drawable, Model};
 
-mod iterator;
+pub mod iterator;
 
 pub const MAX_LEAVES: usize = 4;
 
@@ -24,7 +21,7 @@ enum QuadTreeChildren<Leaf> {
 
 #[derive(Debug)]
 pub struct QuadTree<Leaf> {
-    boundary: BoundingBox,
+    pub boundary: BoundingBox,
     children: QuadTreeChildren<Leaf>,
 }
 
@@ -93,67 +90,3 @@ impl<Leaf> Positioned for QuadTree<Leaf> {
         self.boundary.xy()
     }
 }
-
-impl<Leaf: Drawable> Drawable for QuadTree<Leaf> {
-    fn draw(&self, draw: &Draw, model: &Model) {
-        drawable::draw_bounding_box(self.boundary, draw, RED);
-        self.children.draw(draw, model);
-    }
-}
-
-impl<Leaf: Drawable> Drawable for QuadTreeChildren<Leaf> {
-    fn draw(&self, draw: &Draw, model: &Model) {
-        match self {
-            Leaves(leaves) => {
-                leaves.iter().for_each(|leaf| leaf.draw(draw, model));
-            }
-            Nodes(nodes) => {
-                nodes.iter().for_each(|node| node.draw(draw, model));
-            }
-        }
-    }
-}
-
-impl<Leaf> Entity for QuadTree<Leaf>
-where
-    Leaf: Entity,
-{
-    fn update(&mut self) {
-        match &mut self.children {
-            Leaves(leaves) => {
-                leaves.iter_mut().for_each(|leaf| {
-                    leaf.update();
-                });
-            }
-            Nodes(nodes) => {
-                nodes.iter_mut().for_each(|node| {
-                    node.update();
-                });
-            }
-        }
-    }
-}
-
-// impl QuadTree {
-//
-//     pub fn query(&self, range: &Boundary) -> Vec<&Particle> {
-//         let mut particles: Vec<&Particle> = Vec::new();
-//         if !self.boundary.intersects(range) {
-//             return particles;
-//         }
-//         self.particle_container.particles.iter().for_each(|p| {
-//             if let Some(p) = p {
-//                 if range.contains(p) {
-//                     particles.push(p);
-//                 }
-//             }
-//         });
-//         if let Some(sub_trees) = &self.particle_container.sub_trees {
-//             sub_trees.iter().for_each(|t| {
-//                 particles.append(&mut t.query(range));
-//             });
-//         }
-//         // println!("particles: {:?}", particles);
-//         particles
-//     }
-// }

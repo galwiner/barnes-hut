@@ -9,3 +9,6 @@ edition = "2021"
 itertools = "0.10.5"
 nannou = "0.18.1"
 rand_distr = "0.4.3"
+
+[dev-dependencies]
+static_assertions = "1.1.0"

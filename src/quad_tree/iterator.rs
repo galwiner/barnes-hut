@@ -7,7 +7,6 @@ use crate::geometry::{BoundingBox, Positioned};
 use crate::quad_tree::QuadTree;
 use crate::quad_tree::QuadTreeChildren::{Leaves, Nodes};
 
-#[must_use = "iterators are lazy and do nothing unless consumed"]
 pub enum TreePosition<'a, Leaf> {
     Leaf(&'a Leaf),
     Node(&'a QuadTree<Leaf>),
@@ -42,6 +41,7 @@ pub trait TreeIterator: Iterator {
     fn skip_subtree(&mut self);
 }
 
+#[must_use = "iterators are lazy and do nothing unless consumed"]
 #[derive(Clone)]
 pub struct DepthFirstIter<'a, Leaf> {
     children: Either<&'a [Leaf], &'a [QuadTree<Leaf>]>,
@@ -153,8 +153,8 @@ where
     }
 }
 
-#[must_use = "iterators are lazy and do nothing unless consumed"]
 #[derive(Clone)]
+#[must_use = "iterators are lazy and do nothing unless consumed"]
 pub struct NodeIter<Inner> {
     inner: Inner,
 }
@@ -194,8 +194,8 @@ where
     }
 }
 
-#[must_use = "iterators are lazy and do nothing unless consumed"]
 #[derive(Clone)]
+#[must_use = "iterators are lazy and do nothing unless consumed"]
 pub struct Bounded<Inner> {
     inner: Inner,
     bounds: BoundingBox,
@@ -256,25 +256,30 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn test_iter() {
-        let mut tree = QuadTree::new(BoundingBox::from_w_h(20.0, 20.0));
-        (-9..9).for_each(|x| {
-            tree.insert(pt2(x as f32, x as f32));
-        });
+    const SIZE: f32 = 1024.0;
 
+    fn test_iter<F, L>(mut f: F)
+    where
+        F: FnMut(i32) -> L,
+        L: Positioned + Clone,
+    {
+        let mut tree = QuadTree::new(BoundingBox::from_w_h(SIZE, SIZE));
+        (0..10).for_each(|x| {
+            tree.insert(f(x));
+        });
         let bounded = tree
             .iter()
             .bounded(BoundingBox::from_corner_points([-2.0, -2.0], [3.0, 3.0]));
+
         let xs = bounded
             .clone()
             .leaves()
-            .map(|p| p.x as i32)
+            .map(|p| p.position().x as i32)
             .sorted()
             .collect_vec();
         println!("leaves at: {xs:?}");
 
-        assert_eq!(xs, (-2..=3).collect_vec());
+        assert_eq!(xs, (0..=3).collect_vec());
 
         let node_iter = bounded.clone().nodes();
         println!(
@@ -284,5 +289,15 @@ mod tests {
                 .map(|qt| { format!("{:?}", qt.boundary.x_y()) })
                 .join(", "),
         );
+    }
+
+    #[test]
+    fn test_iter_owned() {
+        test_iter(|x| pt2(x as f32, x as f32));
+    }
+
+    #[test]
+    fn boxed_items() {
+        test_iter(|x| Box::new(pt2(x as f32, x as f32)));
     }
 }
