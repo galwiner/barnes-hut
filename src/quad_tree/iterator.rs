@@ -13,26 +13,23 @@ pub enum TreePosition<'a, Leaf> {
 }
 
 pub trait TreeIterator: Iterator {
-    fn leaves<'a, Leaf>(self) -> LeafIter<Self>
+    fn leaves(self) -> LeafIter<Self>
     where
-        Self: Sized + Iterator<Item = TreePosition<'a, Leaf>>,
-        Leaf: 'a,
+        Self: Sized,
     {
         LeafIter::new(self)
     }
 
-    fn nodes<'a, Leaf>(self) -> NodeIter<Self>
+    fn nodes(self) -> NodeIter<Self>
     where
-        Self: Sized + Iterator<Item = TreePosition<'a, Leaf>>,
-        Leaf: 'a,
+        Self: Sized,
     {
         NodeIter::new(self)
     }
 
-    fn bounded<'a, Leaf>(self, bounds: BoundingBox) -> Bounded<Self>
+    fn bounded(self, bounds: BoundingBox) -> Bounded<Self>
     where
-        Self: Sized + Iterator<Item = TreePosition<'a, Leaf>>,
-        Leaf: 'a,
+        Self: Sized,
     {
         Bounded::new(self, bounds)
     }
@@ -42,7 +39,8 @@ pub trait TreeIterator: Iterator {
 }
 
 #[must_use = "iterators are lazy and do nothing unless consumed"]
-#[derive(Clone)]
+#[derive(Derivative)]
+#[derivative(Clone(bound = ""))]
 pub struct DepthFirstIter<'a, Leaf> {
     children: Either<&'a [Leaf], &'a [QuadTree<Leaf>]>,
     parent: Option<Box<Self>>,
@@ -122,8 +120,12 @@ pub struct LeafIter<Inner> {
 }
 
 impl<Inner> LeafIter<Inner> {
-    fn new(inner: Inner) -> Self {
+    pub(self) fn new(inner: Inner) -> Self {
         Self { inner }
+    }
+
+    fn bounded(self, bounds: BoundingBox) -> NodeIter<Bounded<Inner>> {
+        NodeIter::new(Bounded::new(self.inner, bounds))
     }
 }
 
@@ -162,6 +164,10 @@ pub struct NodeIter<Inner> {
 impl<Inner> NodeIter<Inner> {
     fn new(inner: Inner) -> Self {
         Self { inner }
+    }
+
+    fn bounded(self, bounds: BoundingBox) -> NodeIter<Bounded<Inner>> {
+        NodeIter::new(Bounded::new(self.inner, bounds))
     }
 }
 

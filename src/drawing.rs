@@ -1,47 +1,19 @@
-use nannou::color;
-use nannou::color::IntoLinSrgba;
+use nannou::color::{IntoLinSrgba, LinSrgba};
 use nannou::draw::primitive::Rect as RectPrimitive;
 use nannou::draw::properties::ColorScalar;
 use nannou::Draw;
 
-use crate::geometry::{BoundingBox, Positioned};
-use crate::particle::Particle;
-use crate::quad_tree::iterator::{TreeIterator, TreePosition};
-use crate::quad_tree::QuadTree;
-use crate::Model;
+use crate::geometry::BoundingBox;
 
-pub fn draw_all(model: &Model, draw: &Draw, frame: BoundingBox) {
-    draw_tree(&model.qt, &draw, &model, frame);
-    draw_rect(model.inspector, &draw, color::LIGHTCORAL);
-}
-
-fn draw_tree(tree: &QuadTree<Particle>, draw: &Draw, model: &Model, frame: BoundingBox) {
-
-    tree.iter()
-        .bounded(frame)
-        .for_each(|position| match position {
-            TreePosition::Leaf(leaf) => {
-                let position = leaf.position();
-                let color = if model.inspector.contains(position) {
-                    color::RED
-                } else {
-                    color::GREEN
-                };
-                if model.draw_particles {
-                    draw.ellipse()
-                        .xy(position)
-                        .w_h(10.0, 10.0)
-                        .stroke(color::BLACK)
-                        .color(color);
-                }
-            }
-            TreePosition::Node(node) => draw_rect(node.boundary, draw, color::RED),
-        });
-}
-
-pub fn draw_rect(boundary: BoundingBox, draw: &Draw, color: impl IntoLinSrgba<ColorScalar>) {
-    draw.a(RectPrimitive::from(boundary))
+pub fn draw_rect(rect: BoundingBox, draw: &Draw, color: impl IntoLinSrgba<ColorScalar>) {
+    draw.a(RectPrimitive::from(rect))
         .rgba(0.0, 0.0, 0.0, 0.0)
-        .stroke(color)
+        .stroke(color.into_lin_srgba())
         .stroke_weight(0.5);
+}
+
+pub fn alpha(color: impl IntoLinSrgba<ColorScalar>, alpha: f32) -> LinSrgba {
+    let mut color = color.into_lin_srgba();
+    color.alpha = alpha;
+    color
 }

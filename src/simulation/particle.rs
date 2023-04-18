@@ -1,4 +1,6 @@
-use nannou::geom::{Point2, Vec2};
+use std::borrow::Borrow;
+
+use nannou::geom::{vec2, Point2, Vec2};
 use nannou::rand;
 use nannou::rand::distributions::Distribution;
 use rand_distr::Normal;
@@ -15,26 +17,21 @@ pub struct Particle {
 }
 
 impl Particle {
-    pub fn new(x: f32, y: f32) -> Self {
-        let position = Point2::new(x, y);
-        let velocity = Vec2::new(1.0, 0.0);
-        let acceleration = Vec2::new(0.0, 0.0);
-        let mass = 10.0;
-        let radius = 0.1;
+    pub fn new(p: Point2) -> Self {
         Self {
-            position,
-            velocity,
-            acceleration,
-            mass,
-            radius,
+            position: p,
+            velocity: vec2(1.0, 0.0),
+            acceleration: vec2(0.0, 0.0),
+            mass: 10.0,
+            radius: 0.1,
         }
     }
     pub fn new_random() -> Self {
         let normal = Normal::new(0.0, 100.0).unwrap();
         let random_sample = || normal.sample(&mut rand::thread_rng());
         let position = Point2::new(random_sample(), random_sample());
-        let velocity = Vec2::new(1.0, 0.0);
-        let acceleration = Vec2::new(0.0, 0.0);
+        let velocity = vec2(1.0, 0.0);
+        let acceleration = vec2(0.0, 0.0);
         let mass = 10.0;
         let radius = 0.1;
         Self {
@@ -48,6 +45,12 @@ impl Particle {
 }
 
 impl Positioned for Particle {
+    fn position(&self) -> Point2 {
+        self.position
+    }
+}
+
+impl Positioned for &Particle {
     fn position(&self) -> Point2 {
         self.position
     }

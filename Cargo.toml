@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+derivative = "2.2.0"
 itertools = "0.10.5"
 nannou = "0.18.1"
 rand_distr = "0.4.3"

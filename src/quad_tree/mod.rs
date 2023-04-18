@@ -4,10 +4,10 @@ use std::mem::swap;
 
 use nannou::prelude::*;
 
+use iterator::DepthFirstIter;
 use QuadTreeChildren::{Leaves, Nodes};
 
 use crate::geometry::{BoundingBox, Positioned};
-pub use crate::quad_tree::iterator::DepthFirstIter;
 
 pub mod iterator;
 
@@ -85,8 +85,10 @@ impl<Leaf> QuadTree<Leaf> {
     }
 }
 
-impl<Leaf> Positioned for QuadTree<Leaf> {
-    fn position(&self) -> Point2 {
-        self.boundary.xy()
+impl<Leaf: Positioned> Extend<Leaf> for QuadTree<Leaf> {
+    fn extend<T: IntoIterator<Item = Leaf>>(&mut self, iter: T) {
+        iter.into_iter().for_each(|item| {
+            self.insert(item);
+        });
     }
 }
