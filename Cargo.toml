@@ -13,3 +13,6 @@ rand_distr = "0.4.3"
 
 [dev-dependencies]
 static_assertions = "1.1.0"
+
+[profile.dev.package."*"]
+opt-level = 3

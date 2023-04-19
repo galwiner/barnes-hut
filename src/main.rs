@@ -23,7 +23,7 @@ fn main() {
 }
 
 struct AppModel {
-    sim: Simulation,
+    simulation: Simulation,
     view_state: ViewState,
 }
 
@@ -37,8 +37,10 @@ fn app_init(app: &App) -> AppModel {
         .build()
         .unwrap();
 
+    let mut simulation = Simulation::new();
+    simulation.add_random_particles(1000);
     AppModel {
-        sim: Simulation::new(),
+        simulation: simulation,
         view_state: ViewState::new(),
     }
 }
@@ -46,7 +48,7 @@ fn app_init(app: &App) -> AppModel {
 fn view(app: &App, model: &AppModel, frame: Frame) {
     let draw = app.draw();
     draw.background().color(BLACK);
-    model.sim.draw(&draw, frame.rect(), &model.view_state);
+    model.simulation.draw(&draw, frame.rect(), &model.view_state);
     if let Some(inspector) = model.view_state.inspector {
         draw_rect(inspector, &draw, alpha(LIGHTCORAL, 0.8));
     }
@@ -55,11 +57,11 @@ fn view(app: &App, model: &AppModel, frame: Frame) {
 }
 
 fn update(_app: &App, model: &mut AppModel, update: Update) {
-    model.sim.update(update);
+    model.simulation.update(update);
 }
 
 fn on_mouse_pressed(app: &App, model: &mut AppModel, _button: MouseButton) {
-    model.sim.add_particle(app.mouse.position());
+    model.simulation.add_particle_at(app.mouse.position());
 }
 
 fn on_mouse_moved(_app: &App, model: &mut AppModel, position: Point2) {

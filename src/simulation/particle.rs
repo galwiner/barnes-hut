@@ -1,14 +1,13 @@
-use nannou::event::Update;
-use nannou::geom::{vec2, Point2, Vec2};
-use nannou::rand::{thread_rng, Rng};
 use nannou::{color, Draw};
+use nannou::geom::{Point2, vec2, Vec2};
+use nannou::rand::{Rng, thread_rng};
 use rand_distr::Normal;
 
 use ParticleTag::*;
 
 use crate::drawing::alpha;
 use crate::geometry::Positioned;
-use crate::simulation::{Simulation, Universe};
+use crate::simulation::universe::Universe;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ParticleTag {
@@ -37,6 +36,7 @@ impl Particle {
             tag: Placed,
         }
     }
+
     pub fn new_random() -> Self {
         let normal = Normal::new(0.0, 1.0).unwrap();
         let uniform = || thread_rng().gen::<f32>();
@@ -52,19 +52,14 @@ impl Particle {
             tag: Default,
         }
     }
-    pub fn update(&mut self, update: Update, _universe: &Universe) {
-        const SIM_SPEED: f32 = 10.0;
-        const G: f32 = 1e3;
-        const SCALE: f32 = 0.2;
-        let dt = update.since_last.as_secs_f32() * SIM_SPEED;
-
+    pub fn update(&mut self, dt: f32, _universe: &Universe) {
         let p = self.position;
-        let distance = p.length() * SCALE;
-        let g_accel = G / (distance * distance);
+        let distance = p.length() * Universe::SCALE;
+        let g_accel = Universe::G / (distance * distance);
         self.acceleration = g_accel * -p.normalize();
         self.velocity = self.velocity + (self.acceleration * dt);
         let dx = (self.velocity * dt).clamp_length_max(100.0);
-        self.position = (self.position + dx).clamp_length_max(Simulation::UNIVERSE_SIZE / 2.0);
+        self.position = self.position + dx;
     }
 
     pub fn draw(&self, draw: &Draw, in_inspector: bool) {
