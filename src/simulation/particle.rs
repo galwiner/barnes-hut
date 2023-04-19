@@ -44,7 +44,7 @@ impl Particle {
             || Point2::new(thread_rng().sample(normal), thread_rng().sample(normal));
 
         Self {
-            position: normal_random_pt2() * 100.0,
+            position: normal_random_pt2() * 200.0,
             velocity: normal_random_pt2() * 10.0,
             acceleration: normal_random_pt2() * 0.0,
             mass: uniform() * 10.0,
@@ -55,16 +55,16 @@ impl Particle {
     pub fn update(&mut self, update: Update, _universe: &Universe) {
         const SIM_SPEED: f32 = 10.0;
         const G: f32 = 1e3;
-        const SCALE: f32 = 0.5;
+        const SCALE: f32 = 0.2;
+        let dt = update.since_last.as_secs_f32() * SIM_SPEED;
 
         let p = self.position;
         let distance = p.length() * SCALE;
-        let gravity = G * self.mass / (distance * distance);
-        self.acceleration = (-gravity * p.normalize()).clamp_length_max(10.0);
-        let dt = update.since_last.as_secs_f32() * SIM_SPEED;
-        self.velocity += (self.acceleration * dt).clamp_length_max(10.0);
-        self.position += self.velocity * dt;
-        self.position.clamp_length_max(Simulation::UNIVERSE_SIZE);
+        let g_accel = G / (distance * distance);
+        self.acceleration = g_accel * -p.normalize();
+        self.velocity = self.velocity + (self.acceleration * dt);
+        let dx = (self.velocity * dt).clamp_length_max(100.0);
+        self.position = (self.position + dx).clamp_length_max(Simulation::UNIVERSE_SIZE / 2.0);
     }
 
     pub fn draw(&self, draw: &Draw, in_inspector: bool) {

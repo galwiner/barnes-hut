@@ -9,7 +9,7 @@ use crate::geometry::{BoundingBox, Positioned};
 
 pub mod iterator;
 
-pub const MAX_LEAVES: usize = 4;
+pub const TARGET_MAX_LEAVES: usize = 1;
 
 #[derive(Debug)]
 enum QuadTreeChildren<Leaf> {
@@ -51,7 +51,7 @@ impl<Leaf> QuadTree<Leaf> {
         match &mut self.children {
             Leaves(leaves) => {
                 leaves.push(item);
-                if leaves.len() > MAX_LEAVES {
+                if leaves.len() > TARGET_MAX_LEAVES {
                     if leaves
                         .iter()
                         .filter(|leaf| leaf.position() == position)
