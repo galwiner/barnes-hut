@@ -2,8 +2,6 @@ extern crate nannou;
 
 use std::mem::swap;
 
-use nannou::prelude::*;
-
 use iterator::DepthFirstIter;
 use QuadTreeChildren::{Leaves, Nodes};
 
@@ -21,7 +19,7 @@ enum QuadTreeChildren<Leaf> {
 
 #[derive(Debug)]
 pub struct QuadTree<Leaf> {
-    pub boundary: BoundingBox,
+    boundary: BoundingBox,
     children: QuadTreeChildren<Leaf>,
 }
 
@@ -31,6 +29,10 @@ impl<Leaf> QuadTree<Leaf> {
             boundary,
             children: Leaves(Vec::new()),
         }
+    }
+
+    pub fn boundary(&self) -> BoundingBox {
+        self.boundary
     }
 
     pub fn iter(&self) -> DepthFirstIter<Leaf> {
@@ -56,7 +58,7 @@ impl<Leaf> QuadTree<Leaf> {
                         .count()
                         > 1
                     {
-                        println!("Not subdividing node with {} leaves as new leaf repeats an existing position", leaves.len());
+                        // not subdividing node with multiple leaves at the same position
                         return true;
                     }
                     let subtrees = self.boundary.subdivisions().map(QuadTree::<Leaf>::new);

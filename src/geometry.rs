@@ -15,11 +15,6 @@ impl<T: Borrow<Point2>> Positioned for T {
 
 pub type BoundingBox = Rect;
 
-fn _x() {
-    let rect = BoundingBox::from_wh(Point2::ZERO);
-    rect.xy();
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

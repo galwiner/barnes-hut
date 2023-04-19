@@ -55,7 +55,7 @@ fn view(app: &App, model: &AppModel, frame: Frame) {
 }
 
 fn update(_app: &App, model: &mut AppModel, update: Update) {
-    model.sim.update(&model.view_state, update);
+    model.sim.update(update);
 }
 
 fn on_mouse_pressed(app: &App, model: &mut AppModel, _button: MouseButton) {

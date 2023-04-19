@@ -124,6 +124,7 @@ impl<Inner> LeafIter<Inner> {
         Self { inner }
     }
 
+    #[allow(dead_code)]
     fn bounded(self, bounds: BoundingBox) -> NodeIter<Bounded<Inner>> {
         NodeIter::new(Bounded::new(self.inner, bounds))
     }
@@ -166,6 +167,7 @@ impl<Inner> NodeIter<Inner> {
         Self { inner }
     }
 
+    #[allow(dead_code)]
     fn bounded(self, bounds: BoundingBox) -> NodeIter<Bounded<Inner>> {
         NodeIter::new(Bounded::new(self.inner, bounds))
     }
@@ -307,3 +309,52 @@ mod tests {
         test_iter(|x| Box::new(pt2(x as f32, x as f32)));
     }
 }
+
+//region Description
+pub struct IntoIter<Leaf> {
+    leaves: Vec<Leaf>,
+    nodes: Vec<QuadTree<Leaf>>,
+}
+
+impl<Leaf> Iterator for IntoIter<Leaf> {
+    type Item = Leaf;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(leaf) = self.leaves.pop() {
+            return Some(leaf);
+        }
+        if let Some(node) = self.nodes.pop() {
+            match node.children {
+                Leaves(leaves) => {
+                    self.leaves = leaves;
+                    self.next()
+                }
+                Nodes(nodes) => {
+                    self.nodes.extend(*nodes);
+                    self.next()
+                }
+            }
+        } else {
+            None
+        }
+    }
+}
+
+impl<Leaf> IntoIterator for QuadTree<Leaf> {
+    type Item = Leaf;
+    type IntoIter = IntoIter<Leaf>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self.children {
+            Leaves(leaves) => IntoIter {
+                leaves,
+                nodes: Vec::new(),
+            },
+            Nodes(nodes) => IntoIter {
+                leaves: Vec::new(),
+                nodes: nodes.into_iter().collect(),
+            },
+        }
+    }
+}
+//endregion
