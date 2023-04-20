@@ -28,10 +28,6 @@ impl Universe {
     pub const SCALE: f32 = 20.0;
     pub const G: f32 = 800.0;
 
-    pub(super) fn new() -> Self {
-        Self::default()
-    }
-
     fn empty_space() -> QuadTree<Particle> {
         QuadTree::new(Rect::from_w_h(Self::SIZE, Self::SIZE))
     }

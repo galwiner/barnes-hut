@@ -1,66 +1,57 @@
-use std::time::{Duration, Instant};
-
 use nannou::event::Update;
 use nannou::geom::Rect;
 use nannou::Draw;
 
 use particle::Particle;
+use stats::Stats;
 use universe::Universe;
 
 use crate::geometry::Point2;
 use crate::view_state::ViewState;
 
 mod particle;
+mod stats;
 mod universe;
 
 #[derive(Debug, Default)]
 pub struct Simulation {
     universe: Universe,
-    step: u64,
-    simulated_time_elapsed: Duration,
-    time_used_simulating: Duration,
+    stats: Stats,
 }
 
-impl Simulation {
-    const TARGET_FPS: f32 = 60.0;
-    const MAX_SECS_PER_UPDATE: f32 = 1.0 / Self::TARGET_FPS;
-    const DT_PER_STEP: f32 = 0.001;
+const TARGET_FPS: f32 = 60.0;
+const FRAME_INTERVAL: f32 = 1.0 / TARGET_FPS;
+const MAX_UPDATE_DURATION: f32 = FRAME_INTERVAL * 0.5;
+const DT: f32 = 0.001;
+const CATCHUP_RATE: f32 = 1.1;
 
+impl Simulation {
     pub fn new() -> Self {
-        Self {
-            universe: Universe::new(),
-            ..Default::default()
-        }
+        Default::default()
     }
 
-    pub fn update(&mut self, update: Update) {
-        let time_budget = Duration::from_secs_f32(Self::MAX_SECS_PER_UPDATE);
-        let update_time = Instant::now();
-        let dt_duration = Duration::from_secs_f32(Self::DT_PER_STEP);
+    pub fn reset_stats(&mut self) {
+        self.stats = Default::default();
+    }
+
+    pub fn update(&mut self, _update: Update) {
+        let update_start = self.stats.update_real_age();
+        let target_sim_age_secs = (update_start.real_age + FRAME_INTERVAL)
+            .min(update_start.simulated_secs + FRAME_INTERVAL * CATCHUP_RATE);
 
         loop {
-            let step_started_at = Instant::now();
-            self.universe.step(Self::DT_PER_STEP);
-            self.simulated_time_elapsed += dt_duration;
-            self.time_used_simulating += step_started_at.elapsed();
-            self.step += 1;
-            if update_time.elapsed() > time_budget
-                || self.simulated_time_elapsed > update.since_start
+            self.stats.track_step(DT, || {
+                self.universe.step(DT);
+            });
+
+            if self.stats.simulated_secs > target_sim_age_secs
+                || (self.stats.real_age - update_start.real_age) > MAX_UPDATE_DURATION
             {
                 break;
             }
         }
 
-        if static_rate_limit!(Duration::from_secs(1)) {
-            info!(
-                "s: {:6} @{:>8.2?}, lag: {:>8.2?}, work time: {:6.2}% ({:?}/step)",
-                self.step,
-                update.since_start,
-                update.since_start - self.simulated_time_elapsed.min(update.since_start),
-                self.time_used_simulating.as_secs_f32() / update.since_start.as_secs_f32() * 100.0,
-                self.time_used_simulating / self.step as u32,
-            )
-        }
+        static_rate_limit!(Duration::from_secs(1), self.stats.log(update_start));
     }
 
     pub fn add_particle_at(&mut self, position: Point2) {

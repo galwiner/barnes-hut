@@ -18,6 +18,7 @@ use crate::simulation::Simulation;
 
 #[macro_use]
 mod macros;
+mod created;
 mod drawing;
 mod geometry;
 mod quad_tree;
@@ -86,11 +87,14 @@ fn on_key_pressed(_app: &App, model: &mut AppModel, key: Key) {
         Key::Space => {
             model.view_state.toggle_draw_particles();
         }
-        Key::Back => {
+        Key::Back /* backspace */ => {
             model.simulation = Simulation::new();
         }
-        Key::R => {
+        Key::P => {
             model.simulation.add_random_particles(200);
+        }
+        Key::R => {
+            model.simulation.reset_stats();
         }
         _ => {}
     }

@@ -1,4 +1,5 @@
 macro_rules! static_rate_limit {
+    (x: u32) => ();
     ($interval: expr) => {{
         static_rate_limit!($interval, true)
     }};
