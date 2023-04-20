@@ -38,7 +38,7 @@ fn app_init(app: &App) -> AppModel {
         .unwrap();
 
     let mut simulation = Simulation::new();
-    simulation.add_random_particles(1000);
+    simulation.add_random_particles(200);
     AppModel {
         simulation: simulation,
         view_state: ViewState::new(),
@@ -48,7 +48,9 @@ fn app_init(app: &App) -> AppModel {
 fn view(app: &App, model: &AppModel, frame: Frame) {
     let draw = app.draw();
     draw.background().color(BLACK);
-    model.simulation.draw(&draw, frame.rect(), &model.view_state);
+    model
+        .simulation
+        .draw(&draw, frame.rect(), &model.view_state);
     if let Some(inspector) = model.view_state.inspector {
         draw_rect(inspector, &draw, alpha(LIGHTCORAL, 0.8));
     }
@@ -72,6 +74,12 @@ fn on_key_pressed(_app: &App, model: &mut AppModel, key: Key) {
     match key {
         Key::Space => {
             model.view_state.toggle_draw_particles();
+        }
+        Key::Back => {
+            model.simulation = Simulation::new();
+        }
+        Key::R => {
+            model.simulation.add_random_particles(200);
         }
         _ => {}
     }

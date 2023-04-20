@@ -1,6 +1,6 @@
 extern crate nannou;
 
-use std::mem::swap;
+use std::mem;
 
 use iterator::DepthFirstIter;
 use QuadTreeChildren::{Leaves, Nodes};
@@ -11,16 +11,21 @@ pub mod iterator;
 
 pub const TARGET_MAX_LEAVES: usize = 1;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum QuadTreeChildren<Leaf> {
     Leaves(Vec<Leaf>),
     Nodes(Box<[QuadTree<Leaf>; 4]>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct QuadTree<Leaf> {
     boundary: BoundingBox,
     children: QuadTreeChildren<Leaf>,
+}
+
+#[derive(Debug, Clone)]
+pub enum Error {
+    OutOfBounds,
 }
 
 impl<Leaf> QuadTree<Leaf> {
@@ -39,41 +44,28 @@ impl<Leaf> QuadTree<Leaf> {
         DepthFirstIter::new(self)
     }
 
-    pub fn insert(&mut self, item: Leaf) -> bool
+    pub fn insert(&mut self, item: Leaf) -> Result<(), Error>
     where
         Leaf: Positioned,
     {
         let position = item.position();
         if !self.boundary.contains(position) {
-            return false;
+            return Err(Error::OutOfBounds);
         }
 
         match &mut self.children {
-            Leaves(leaves) => {
+            Leaves(ref mut leaves) => {
+                let split_tree = leaves.len() >= TARGET_MAX_LEAVES
+                    && !leaves.iter().any(|leaf| leaf.position() == position);
                 leaves.push(item);
-                if leaves.len() > TARGET_MAX_LEAVES {
-                    if leaves
-                        .iter()
-                        .filter(|leaf| leaf.position() == position)
-                        .count()
-                        > 1
-                    {
-                        // not subdividing node with multiple leaves at the same position
-                        return true;
-                    }
+
+                if split_tree {
+                    let leaves = mem::take(leaves);
                     let subtrees = self.boundary.subdivisions().map(QuadTree::<Leaf>::new);
-                    let mut swapped_children = Nodes(Box::new(subtrees));
-                    swap(&mut self.children, &mut swapped_children);
-                    match swapped_children {
-                        Leaves(leaves) => leaves.into_iter().for_each(|leaf| {
-                            self.insert(leaf);
-                        }),
-                        _ => panic!("swapped_children should be Leaves"),
-                    }
-                    true
-                } else {
-                    false
+                    self.children = Nodes(Box::new(subtrees));
+                    leaves.into_iter().try_for_each(|l| self.insert(l))?;
                 }
+                Ok(())
             }
             Nodes(nodes) => {
                 for node in nodes.iter_mut() {
@@ -81,16 +73,8 @@ impl<Leaf> QuadTree<Leaf> {
                         return node.insert(item);
                     }
                 }
-                false
+                panic!("position {} should be in a subtree", position);
             }
         }
-    }
-}
-
-impl<Leaf: Positioned> Extend<Leaf> for QuadTree<Leaf> {
-    fn extend<T: IntoIterator<Item = Leaf>>(&mut self, iter: T) {
-        iter.into_iter().for_each(|item| {
-            self.insert(item);
-        });
     }
 }

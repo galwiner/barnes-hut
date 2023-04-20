@@ -1,6 +1,8 @@
-use nannou::geom::Rect;
 use std::mem;
+
+use nannou::geom::Rect;
 use nannou::{color, Draw};
+
 use crate::drawing::{alpha, draw_rect};
 use crate::geometry::Positioned;
 use crate::quad_tree::iterator::TreeIterator;
@@ -8,21 +10,25 @@ use crate::quad_tree::QuadTree;
 use crate::simulation::particle::Particle;
 use crate::view_state::ViewState;
 
+#[derive(Debug, Clone)]
 pub(super) struct Universe {
     space: QuadTree<Particle>,
-    time_elapsed: f32,
+}
+
+impl Default for Universe {
+    fn default() -> Self {
+        Self {
+            space: Self::empty_space(),
+        }
+    }
 }
 
 impl Universe {
     pub const SIZE: f32 = 1e6;
-    pub const G: f32 = 1e3;
-    pub const SCALE: f32 = 0.2;
+    pub const G: f32 = 5e3;
 
     pub(super) fn new() -> Self {
-        Self {
-            space: Self::empty_space(),
-            time_elapsed: 0.0,
-        }
+        Self::default()
     }
 
     fn empty_space() -> QuadTree<Particle> {
@@ -30,21 +36,25 @@ impl Universe {
     }
 
     pub(super) fn step(&mut self, dt: f32) {
-        let new_universe = Self {
-            space: Self::empty_space(),
-            time_elapsed: self.time_elapsed + dt,
-        };
-        let old_universe = mem::replace(&mut *self, new_universe);
+        let old_universe = mem::replace(
+            &mut *self,
+            Self {
+                space: Self::empty_space(),
+            },
+        );
         for particle in old_universe.space.iter().leaves() {
             let mut particle = particle.clone();
             particle.update(dt, &old_universe);
-            self.space.insert(particle);
+            self.insert(particle);
         }
     }
 
     pub(super) fn insert(&mut self, particle: Particle) {
-        if !self.space.insert(particle) {
-            println!("Failed to insert out-of-bounds particle at {:?}", particle.position());
+        if let Err(err) = self.space.insert(particle) {
+            eprintln!(
+                "Failed to insert particle at {:?}: {err:?}",
+                particle.position()
+            );
         }
     }
 

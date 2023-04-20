@@ -1,6 +1,6 @@
+use nannou::geom::{vec2, Point2, Vec2};
+use nannou::rand::{thread_rng, Rng};
 use nannou::{color, Draw};
-use nannou::geom::{Point2, vec2, Vec2};
-use nannou::rand::{Rng, thread_rng};
 use rand_distr::Normal;
 
 use ParticleTag::*;
@@ -29,7 +29,7 @@ impl Particle {
     pub fn new(position: Point2) -> Self {
         Self {
             position,
-            velocity: vec2(10.0, 0.0),
+            velocity: vec2(50.0, 0.0),
             acceleration: vec2(0.0, 0.0),
             mass: 10.0,
             radius: 5.0,
@@ -45,35 +45,32 @@ impl Particle {
 
         Self {
             position: normal_random_pt2() * 200.0,
-            velocity: normal_random_pt2() * 10.0,
+            velocity: normal_random_pt2() * 100.0,
             acceleration: normal_random_pt2() * 0.0,
             mass: uniform() * 10.0,
-            radius: 2.0,
+            radius: 3.0,
             tag: Default,
         }
     }
     pub fn update(&mut self, dt: f32, _universe: &Universe) {
         let p = self.position;
-        let distance = p.length() * Universe::SCALE;
-        let g_accel = Universe::G / (distance * distance);
-        self.acceleration = g_accel * -p.normalize();
-        self.velocity = self.velocity + (self.acceleration * dt);
-        let dx = (self.velocity * dt).clamp_length_max(100.0);
-        self.position = self.position + dx;
+        let distance = p.length();
+        let g = Universe::G / (distance * distance);
+        self.acceleration = g * -p.normalize();
+        self.velocity += self.acceleration * dt;
+        self.position += self.velocity * dt;
     }
 
     pub fn draw(&self, draw: &Draw, in_inspector: bool) {
         let color = match (self.tag, in_inspector) {
             (Placed, _) => alpha(color::YELLOW, 1.0),
             (_, true) => alpha(color::YELLOW, 0.3),
-            _ => alpha(color::GREEN, 0.3),
+            _ => alpha(color::GREEN, 0.5),
         };
 
         draw.ellipse()
             .xy(self.position)
             .w_h(self.radius * 2.0, self.radius * 2.0)
-            .stroke(alpha(color::BLACK, 0.5))
-            .stroke_weight(0.1)
             .color(color);
     }
 }
