@@ -23,6 +23,6 @@ impl ViewState {
 
     pub fn toggle_draw_particles(&mut self) {
         self.draw_particles ^= true;
-        println!("draw_particles: {}", self.draw_particles);
+        info!("draw_particles: {}", self.draw_particles);
     }
 }

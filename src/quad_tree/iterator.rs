@@ -273,7 +273,7 @@ mod tests {
     {
         let mut tree = QuadTree::new(BoundingBox::from_w_h(SIZE, SIZE));
         (0..10).for_each(|x| {
-            tree.insert(f(x));
+            tree.insert(f(x)).unwrap();
         });
         let bounded = tree
             .iter()

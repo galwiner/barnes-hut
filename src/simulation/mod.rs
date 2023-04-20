@@ -19,14 +19,12 @@ pub struct Simulation {
     step: u64,
     simulated_time_elapsed: Duration,
     time_used_simulating: Duration,
-    last_logged_at: Option<Instant>,
 }
 
 impl Simulation {
-    const LOG_INTERVAL_SECS: f32 = 1.0;
     const TARGET_FPS: f32 = 60.0;
     const MAX_SECS_PER_UPDATE: f32 = 1.0 / Self::TARGET_FPS;
-    const DT_PER_STEP: f32 = 0.01;
+    const DT_PER_STEP: f32 = 0.001;
 
     pub fn new() -> Self {
         Self {
@@ -53,26 +51,15 @@ impl Simulation {
             }
         }
 
-        self.log_update(update);
-    }
-
-    fn log_update(&mut self, update: Update) {
-        let last_logged_at = self.last_logged_at.get_or_insert_with(Instant::now);
-        if last_logged_at.elapsed().as_secs_f32() > Self::LOG_INTERVAL_SECS || self.step == 0 {
-            let time_percent = |d: Duration| {
-                format!(
-                    "{:6.2}%",
-                    d.as_secs_f32() / update.since_start.as_secs_f32() * 100.0
-                )
-            };
-            println!(
-                "s: {:6}{:>8.2?}, lag: {:>8.2?}, work time: {}",
+        if static_rate_limit!(Duration::from_secs(1)) {
+            info!(
+                "s: {:6} @{:>8.2?}, lag: {:>8.2?}, work time: {:6.2}% ({:?}/step)",
                 self.step,
                 update.since_start,
                 update.since_start - self.simulated_time_elapsed.min(update.since_start),
-                time_percent(self.time_used_simulating),
-            );
-            self.last_logged_at = Some(Instant::now());
+                self.time_used_simulating.as_secs_f32() / update.since_start.as_secs_f32() * 100.0,
+                self.time_used_simulating / self.step as u32,
+            )
         }
     }
 

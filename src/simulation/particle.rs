@@ -18,10 +18,9 @@ enum ParticleTag {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(super) struct Particle {
     tag: ParticleTag,
-    position: Point2,
+    pub mass: f32,
+    pub position: Point2,
     velocity: Vec2,
-    acceleration: Vec2,
-    mass: f32,
     radius: f32,
 }
 
@@ -30,7 +29,6 @@ impl Particle {
         Self {
             position,
             velocity: vec2(50.0, 0.0),
-            acceleration: vec2(0.0, 0.0),
             mass: 10.0,
             radius: 5.0,
             tag: Placed,
@@ -45,19 +43,16 @@ impl Particle {
 
         Self {
             position: normal_random_pt2() * 200.0,
-            velocity: normal_random_pt2() * 100.0,
-            acceleration: normal_random_pt2() * 0.0,
+            velocity: normal_random_pt2() * 50.0,
             mass: uniform() * 10.0,
             radius: 3.0,
             tag: Default,
         }
     }
-    pub fn update(&mut self, dt: f32, _universe: &Universe) {
-        let p = self.position;
-        let distance = p.length();
-        let g = Universe::G / (distance * distance);
-        self.acceleration = g * -p.normalize();
-        self.velocity += self.acceleration * dt;
+
+    pub fn update(&mut self, dt: f32, universe: &Universe) {
+        let acceleration = universe.force_on(self) / self.mass;
+        self.velocity += acceleration * dt;
         self.position += self.velocity * dt;
     }
 

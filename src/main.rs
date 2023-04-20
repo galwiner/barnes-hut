@@ -1,10 +1,14 @@
 #[macro_use]
 extern crate derivative;
+extern crate env_logger;
+#[macro_use]
+extern crate log;
 extern crate nannou;
 #[cfg(test)]
 #[macro_use]
 extern crate static_assertions;
 
+use log::LevelFilter::{Debug, Warn};
 use nannou::prelude::*;
 
 use view_state::ViewState;
@@ -12,6 +16,8 @@ use view_state::ViewState;
 use crate::drawing::{alpha, draw_rect};
 use crate::simulation::Simulation;
 
+#[macro_use]
+mod macros;
 mod drawing;
 mod geometry;
 mod quad_tree;
@@ -19,7 +25,12 @@ mod simulation;
 mod view_state;
 
 fn main() {
-    nannou::app(app_init).update(update).run()
+    env_logger::Builder::new()
+        .filter_level(Warn)
+        .filter(Some(module_path!()), Debug)
+        .parse_default_env()
+        .init();
+    nannou::app(init_app).update(update).run()
 }
 
 struct AppModel {
@@ -27,7 +38,7 @@ struct AppModel {
     view_state: ViewState,
 }
 
-fn app_init(app: &App) -> AppModel {
+fn init_app(app: &App) -> AppModel {
     app.new_window()
         .size(1200, 800)
         .view(view)

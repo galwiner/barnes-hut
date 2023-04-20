@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 derivative = "2.2.0"
+env_logger = "0.10.0"
 itertools = "0.10.5"
+log = "0.4.17"
 nannou = "0.18.1"
 rand_distr = "0.4.3"
 

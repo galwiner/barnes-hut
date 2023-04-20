@@ -1,6 +1,6 @@
 use std::mem;
 
-use nannou::geom::Rect;
+use nannou::geom::{Point2, Rect};
 use nannou::{color, Draw};
 
 use crate::drawing::{alpha, draw_rect};
@@ -25,7 +25,8 @@ impl Default for Universe {
 
 impl Universe {
     pub const SIZE: f32 = 1e6;
-    pub const G: f32 = 5e3;
+    pub const SCALE: f32 = 20.0;
+    pub const G: f32 = 800.0;
 
     pub(super) fn new() -> Self {
         Self::default()
@@ -49,9 +50,17 @@ impl Universe {
         }
     }
 
+    pub(super) fn force_on(&self, particle: &Particle) -> Point2 {
+        const SUN_POSITION: Point2 = Point2::ZERO;
+        let from_sun = particle.position() - SUN_POSITION;
+        let distance = from_sun.length() / Self::SCALE;
+        let g = particle.mass * Self::G / (distance * distance);
+        g * -from_sun.normalize()
+    }
+
     pub(super) fn insert(&mut self, particle: Particle) {
         if let Err(err) = self.space.insert(particle) {
-            eprintln!(
+            error!(
                 "Failed to insert particle at {:?}: {err:?}",
                 particle.position()
             );

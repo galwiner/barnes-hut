@@ -9,7 +9,7 @@ use crate::geometry::{BoundingBox, Positioned};
 
 pub mod iterator;
 
-pub const TARGET_MAX_LEAVES: usize = 1;
+pub const TARGET_MAX_LEAVES: usize = 2;
 
 #[derive(Debug, Clone)]
 enum QuadTreeChildren<Leaf> {
