@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use crate::created::Created;
 
@@ -12,6 +12,10 @@ pub(super) struct Stats {
 }
 
 impl Stats {
+    pub fn reset(&mut self) {
+        *self = Default::default();
+    }
+
     // updates the original & then returns a copy
     pub fn update_real_age(&mut self) -> Self {
         self.real_age = self.created.elapsed().as_secs_f32();
@@ -37,15 +41,19 @@ impl Stats {
         }
     }
 
+    pub fn lag(&self) -> f32 {
+        self.real_age - self.simulated_secs
+    }
+
     pub fn log(&self, baseline: Self) {
         let diff = self.relative_to(baseline);
-        let work_per_step = diff.time_used_simulating / diff.step as f32;
+        let work_per_step = Duration::from_secs_f32(diff.time_used_simulating / diff.step as f32);
         info!(
-            "step {:6} @{:>9.2?}, lag: {:>4.1?}s, work time: {work_per_step:>10.3?}/step ({:3.0}% simulating)",
+            "step {:6} lag: {:>4.1}s({:+4.1}), work time: {work_per_step:>10.3?}/step ({:3.0}% simulating)",
             self.step,
-            self.real_age,
-            (self.real_age - self.simulated_secs).max(0.0),
-            self.simulated_secs / self.real_age * 100.0,
+            self.lag().round(),
+            diff.lag(),
+            self.time_used_simulating / self.real_age * 100.0,
         )
     }
 }

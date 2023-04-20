@@ -13,14 +13,15 @@ use nannou::prelude::*;
 
 use view_state::ViewState;
 
-use crate::drawing::{alpha, draw_rect};
+use crate::drawing::{alpha, draw_rect, Drawable};
+use crate::physics::Universe;
 use crate::simulation::Simulation;
 
 #[macro_use]
 mod macros;
 mod created;
 mod drawing;
-mod geometry;
+mod physics;
 mod quad_tree;
 mod simulation;
 mod view_state;
@@ -35,8 +36,18 @@ fn main() {
 }
 
 struct AppModel {
-    simulation: Simulation,
+    simulation: Simulation<Universe>,
     view_state: ViewState,
+}
+
+impl AppModel {
+    fn univ(&self) -> &Universe {
+        &self.simulation.model
+    }
+
+    fn univ_m(&mut self) -> &mut Universe {
+        &mut self.simulation.model
+    }
 }
 
 fn init_app(app: &App) -> AppModel {
@@ -49,10 +60,8 @@ fn init_app(app: &App) -> AppModel {
         .build()
         .unwrap();
 
-    let mut simulation = Simulation::new();
-    simulation.add_random_particles(200);
     AppModel {
-        simulation: simulation,
+        simulation: Simulation::new(Universe::new(200)),
         view_state: ViewState::new(),
     }
 }
@@ -60,9 +69,7 @@ fn init_app(app: &App) -> AppModel {
 fn view(app: &App, model: &AppModel, frame: Frame) {
     let draw = app.draw();
     draw.background().color(BLACK);
-    model
-        .simulation
-        .draw(&draw, frame.rect(), &model.view_state);
+    model.univ().draw(&draw, frame.rect(), &model.view_state);
     if let Some(inspector) = model.view_state.inspector {
         draw_rect(inspector, &draw, alpha(LIGHTCORAL, 0.8));
     }
@@ -70,12 +77,12 @@ fn view(app: &App, model: &AppModel, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 
-fn update(_app: &App, model: &mut AppModel, update: Update) {
-    model.simulation.update(update);
+fn update(_app: &App, model: &mut AppModel, _: Update) {
+    model.simulation.update();
 }
 
 fn on_mouse_pressed(app: &App, model: &mut AppModel, _button: MouseButton) {
-    model.simulation.add_particle_at(app.mouse.position());
+    model.univ_m().add_particle_at(app.mouse.position());
 }
 
 fn on_mouse_moved(_app: &App, model: &mut AppModel, position: Point2) {
@@ -88,10 +95,10 @@ fn on_key_pressed(_app: &App, model: &mut AppModel, key: Key) {
             model.view_state.toggle_draw_particles();
         }
         Key::Back /* backspace */ => {
-            model.simulation = Simulation::new();
+            model.univ_m().clear();
         }
         Key::P => {
-            model.simulation.add_random_particles(200);
+            model.univ_m().add_random_particles(200);
         }
         Key::R => {
             model.simulation.reset_stats();

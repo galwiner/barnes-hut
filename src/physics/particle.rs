@@ -6,8 +6,9 @@ use rand_distr::Normal;
 use ParticleTag::*;
 
 use crate::drawing::alpha;
-use crate::geometry::Positioned;
-use crate::simulation::universe::Universe;
+use crate::quad_tree::Positioned;
+
+use super::Universe;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ParticleTag {
@@ -51,7 +52,7 @@ impl Particle {
     }
 
     pub fn update(&mut self, dt: f32, universe: &Universe) {
-        let acceleration = universe.force_on(self) / self.mass;
+        let acceleration = universe.net_force_on(self) / self.mass;
         self.velocity += acceleration * dt;
         self.position += self.velocity * dt;
     }

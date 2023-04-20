@@ -1,11 +1,11 @@
 use std::slice;
 
 use itertools::Either;
+use nannou::geom::Rect;
 use Either::{Left, Right};
 
-use crate::geometry::{BoundingBox, Positioned};
-use crate::quad_tree::QuadTree;
 use crate::quad_tree::QuadTreeChildren::{Leaves, Nodes};
+use crate::quad_tree::{Positioned, QuadTree};
 
 pub enum TreePosition<'a, Leaf> {
     Leaf(&'a Leaf),
@@ -27,7 +27,7 @@ pub trait TreeIterator: Iterator {
         NodeIter::new(self)
     }
 
-    fn bounded(self, bounds: BoundingBox) -> Bounded<Self>
+    fn bounded(self, bounds: Rect) -> Bounded<Self>
     where
         Self: Sized,
     {
@@ -125,7 +125,7 @@ impl<Inner> LeafIter<Inner> {
     }
 
     #[allow(dead_code)]
-    fn bounded(self, bounds: BoundingBox) -> NodeIter<Bounded<Inner>> {
+    fn bounded(self, bounds: Rect) -> NodeIter<Bounded<Inner>> {
         NodeIter::new(Bounded::new(self.inner, bounds))
     }
 }
@@ -168,7 +168,7 @@ impl<Inner> NodeIter<Inner> {
     }
 
     #[allow(dead_code)]
-    fn bounded(self, bounds: BoundingBox) -> NodeIter<Bounded<Inner>> {
+    fn bounded(self, bounds: Rect) -> NodeIter<Bounded<Inner>> {
         NodeIter::new(Bounded::new(self.inner, bounds))
     }
 }
@@ -206,11 +206,11 @@ where
 #[must_use = "iterators are lazy and do nothing unless consumed"]
 pub struct Bounded<Inner> {
     inner: Inner,
-    bounds: BoundingBox,
+    bounds: Rect,
 }
 
 impl<Inner> Bounded<Inner> {
-    fn new(inner: Inner, bounds: BoundingBox) -> Self {
+    fn new(inner: Inner, bounds: Rect) -> Self {
         Self { inner, bounds }
     }
 }
@@ -257,10 +257,11 @@ where
 // unit tests:
 #[cfg(test)]
 mod tests {
-    use itertools::Itertools;
-    use nannou::geom::pt2;
+    use std::borrow::Borrow;
 
-    use crate::geometry::BoundingBox;
+    use itertools::Itertools;
+    use nannou::geom::Rect;
+    use nannou::geom::{pt2, Point2};
 
     use super::*;
 
@@ -271,13 +272,13 @@ mod tests {
         F: FnMut(i32) -> L,
         L: Positioned + Clone,
     {
-        let mut tree = QuadTree::new(BoundingBox::from_w_h(SIZE, SIZE));
+        let mut tree = QuadTree::new(Rect::from_w_h(SIZE, SIZE));
         (0..10).for_each(|x| {
             tree.insert(f(x)).unwrap();
         });
         let bounded = tree
             .iter()
-            .bounded(BoundingBox::from_corner_points([-2.0, -2.0], [3.0, 3.0]));
+            .bounded(Rect::from_corner_points([-2.0, -2.0], [3.0, 3.0]));
 
         let xs = bounded
             .clone()
@@ -308,9 +309,19 @@ mod tests {
     fn boxed_items() {
         test_iter(|x| Box::new(pt2(x as f32, x as f32)));
     }
+
+    impl<T: Borrow<Point2>> Positioned for T {
+        fn position(&self) -> Point2 {
+            *self.borrow()
+        }
+    }
+
+    assert_impl_all!(Point2: Positioned);
+    assert_impl_all!(&Point2: Positioned);
+    assert_impl_all!(Box<Point2>: Positioned);
 }
 
-//region Description
+//region IntoIter
 pub struct IntoIter<Leaf> {
     leaves: Vec<Leaf>,
     nodes: Vec<QuadTree<Leaf>>,

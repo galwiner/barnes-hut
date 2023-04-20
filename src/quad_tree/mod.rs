@@ -2,12 +2,16 @@ extern crate nannou;
 
 use std::mem;
 
+use nannou::geom::{Point2, Rect};
+
 use iterator::DepthFirstIter;
 use QuadTreeChildren::{Leaves, Nodes};
 
-use crate::geometry::{BoundingBox, Positioned};
-
 pub mod iterator;
+
+pub trait Positioned {
+    fn position(&self) -> Point2;
+}
 
 pub const TARGET_MAX_LEAVES: usize = 2;
 
@@ -19,7 +23,7 @@ enum QuadTreeChildren<Leaf> {
 
 #[derive(Debug, Clone)]
 pub struct QuadTree<Leaf> {
-    boundary: BoundingBox,
+    boundary: Rect,
     children: QuadTreeChildren<Leaf>,
 }
 
@@ -29,14 +33,14 @@ pub enum Error {
 }
 
 impl<Leaf> QuadTree<Leaf> {
-    pub fn new(boundary: BoundingBox) -> Self {
+    pub fn new(boundary: Rect) -> Self {
         Self {
             boundary,
             children: Leaves(Vec::new()),
         }
     }
 
-    pub fn boundary(&self) -> BoundingBox {
+    pub fn boundary(&self) -> Rect {
         self.boundary
     }
 

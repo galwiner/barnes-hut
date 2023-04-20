@@ -1,11 +1,16 @@
 use nannou::color::{IntoLinSrgba, LinSrgba};
 use nannou::draw::primitive::Rect as RectPrimitive;
 use nannou::draw::properties::ColorScalar;
+use nannou::geom::Rect;
 use nannou::Draw;
 
-use crate::geometry::BoundingBox;
+use crate::view_state::ViewState;
 
-pub fn draw_rect(rect: BoundingBox, draw: &Draw, color: impl IntoLinSrgba<ColorScalar>) {
+pub trait Drawable {
+    fn draw(&self, draw: &Draw, bounds: Rect, view_state: &ViewState);
+}
+
+pub fn draw_rect(rect: Rect, draw: &Draw, color: impl IntoLinSrgba<ColorScalar>) {
     draw.a(RectPrimitive::from(rect))
         .rgba(0.0, 0.0, 0.0, 0.0)
         .stroke(color.into_lin_srgba())
