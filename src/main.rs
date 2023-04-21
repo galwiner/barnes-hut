@@ -10,7 +10,7 @@ extern crate rayon;
 #[macro_use]
 extern crate static_assertions;
 
-use log::LevelFilter::{Debug, Warn};
+use log::LevelFilter::{Debug, Error, Warn};
 use nannou::prelude::*;
 
 use view_state::ViewState;
@@ -31,7 +31,8 @@ mod view_state;
 fn main() {
     env_logger::Builder::new()
         .filter_level(Warn)
-        .filter(Some(module_path!()), Debug)
+        .filter_module(module_path!(), Debug)
+        .filter_module("wgpu_hal::dx12::instance", Error)
         .parse_default_env()
         .init();
     nannou::app(init_app).update(update).run()
