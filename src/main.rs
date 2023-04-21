@@ -4,6 +4,8 @@ extern crate env_logger;
 #[macro_use]
 extern crate log;
 extern crate nannou;
+#[cfg(feature = "parallel")]
+extern crate rayon;
 #[cfg(test)]
 #[macro_use]
 extern crate static_assertions;
@@ -50,6 +52,8 @@ impl AppModel {
     }
 }
 
+const INITIAL_PARTICLE_COUNT: usize = 1000;
+
 fn init_app(app: &App) -> AppModel {
     app.new_window()
         .size(1200, 800)
@@ -61,7 +65,7 @@ fn init_app(app: &App) -> AppModel {
         .unwrap();
 
     AppModel {
-        simulation: Simulation::new(Universe::new(200)),
+        simulation: Simulation::new(Universe::new(INITIAL_PARTICLE_COUNT)),
         view_state: ViewState::new(),
     }
 }

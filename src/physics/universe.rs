@@ -48,6 +48,10 @@ impl Universe {
         }
     }
 
+    fn particles(&self) -> impl Iterator<Item = &Particle> {
+        self.space.iter().leaves()
+    }
+
     pub(super) fn net_force_on(&self, particle: &Particle) -> Point2 {
         const SUN_POSITION: Point2 = Point2::ZERO;
         let from_sun = particle.position() - SUN_POSITION;
@@ -57,12 +61,7 @@ impl Universe {
     }
 
     pub(super) fn insert(&mut self, particle: Particle) {
-        if let Err(err) = self.space.insert(particle) {
-            error!(
-                "Failed to insert particle at {:?}: {err:?}",
-                particle.position()
-            );
-        }
+        self.space.insert(particle);
     }
 
     fn draw_particle(draw: &Draw, p: &Particle, view_state: &ViewState) {
@@ -97,10 +96,29 @@ impl simulation::Model for Universe {
                 space: Self::empty_space(),
             },
         );
-        for particle in old_universe.space.iter().leaves() {
+
+        let update_particle = |particle: &Particle| {
             let mut particle = particle.clone();
             particle.update(dt, &old_universe);
-            self.insert(particle);
-        }
+            particle
+        };
+
+        #[cfg(feature = "parallel")]
+        self.space.extend({
+            use itertools::Itertools;
+            use rayon::prelude::*;
+
+            old_universe
+                .particles()
+                .collect_vec()
+                .par_iter()
+                .cloned()
+                .map(update_particle)
+                .collect::<Vec<_>>()
+        });
+
+        #[cfg(not(feature = "parallel"))]
+        self.space
+            .extend(old_universe.particles().map(update_particle));
     }
 }

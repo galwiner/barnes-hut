@@ -99,6 +99,7 @@ dependencies = [
  "log",
  "nannou",
  "rand_distr",
+ "rayon",
  "static_assertions",
 ]
 

@@ -27,11 +27,6 @@ pub struct QuadTree<Leaf> {
     children: QuadTreeChildren<Leaf>,
 }
 
-#[derive(Debug, Clone)]
-pub enum Error {
-    OutOfBounds,
-}
-
 impl<Leaf> QuadTree<Leaf> {
     pub fn new(boundary: Rect) -> Self {
         Self {
@@ -48,13 +43,14 @@ impl<Leaf> QuadTree<Leaf> {
         DepthFirstIter::new(self)
     }
 
-    pub fn insert(&mut self, item: Leaf) -> Result<(), Error>
+    pub fn insert(&mut self, item: Leaf)
     where
         Leaf: Positioned,
     {
         let position = item.position();
         if !self.boundary.contains(position) {
-            return Err(Error::OutOfBounds);
+            warn!("Dropped insert at out-of-bounds position {}", position);
+            return;
         }
 
         match &mut self.children {
@@ -67,9 +63,8 @@ impl<Leaf> QuadTree<Leaf> {
                     let leaves = mem::take(leaves);
                     let subtrees = self.boundary.subdivisions().map(QuadTree::<Leaf>::new);
                     self.children = Nodes(Box::new(subtrees));
-                    leaves.into_iter().try_for_each(|l| self.insert(l))?;
+                    leaves.into_iter().for_each(|l| self.insert(l));
                 }
-                Ok(())
             }
             Nodes(nodes) => {
                 for node in nodes.iter_mut() {
@@ -77,8 +72,17 @@ impl<Leaf> QuadTree<Leaf> {
                         return node.insert(item);
                     }
                 }
-                panic!("position {} should be in a subtree", position);
+                unreachable!("position {} should be in a subtree", position);
             }
         }
+    }
+}
+
+impl<Leaf: Positioned> Extend<Leaf> for QuadTree<Leaf> {
+    fn extend<T>(&mut self, iter: T)
+    where
+        T: IntoIterator<Item = Leaf>,
+    {
+        iter.into_iter().for_each(|p| self.insert(p));
     }
 }

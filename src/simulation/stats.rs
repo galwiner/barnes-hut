@@ -51,7 +51,7 @@ impl Stats {
         info!(
             "step {:6} lag: {:>4.1}s({:+4.1}), work time: {work_per_step:>10.3?}/step ({:3.0}% simulating)",
             self.step,
-            self.lag().round(),
+            self.lag(),
             diff.lag(),
             self.time_used_simulating / self.real_age * 100.0,
         )
