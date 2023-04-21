@@ -77,7 +77,7 @@ fn view(app: &App, model: &AppModel, frame: Frame) {
     app_draw.background().color(BLACK);
 
     let sim_draw = app_draw.transform(model.view_state.universe_to_app_transform());
-    let sim_bounds = model.view_state.rect_to_universe(frame.rect());
+    let sim_bounds = model.view_state.to_universe_rect(frame.rect());
     model.univ().draw(&sim_draw, sim_bounds, &model.view_state);
 
     if let Some(inspector) = model.view_state.inspector_app_bounds() {
@@ -91,8 +91,14 @@ fn update(_app: &App, model: &mut AppModel, _: Update) {
     model.simulation.update();
 }
 
-fn on_mouse_pressed(app: &App, model: &mut AppModel, _button: MouseButton) {
-    model.univ_m().add_particle_at(app.mouse.position());
+fn on_mouse_pressed(app: &App, model: &mut AppModel, button: MouseButton) {
+    match button {
+        MouseButton::Left => {
+            let universe_position = model.view_state.to_universe_point(app.mouse.position());
+            model.univ_m().add_particle_at(universe_position);
+        }
+        _ => {}
+    }
 }
 
 fn on_mouse_moved(_app: &App, model: &mut AppModel, position: Point2) {
@@ -103,7 +109,7 @@ fn on_key_pressed(_app: &App, model: &mut AppModel, key: Key) {
     const PAN_DISTANCE: f32 = 50.0;
     match key {
         Key::Space => {
-            model.view_state.toggle_draw_particles();
+            model.view_state.cycle_drawn_stuff();
         }
         Key::Back /* backspace */ => {
             model.univ_m().clear();

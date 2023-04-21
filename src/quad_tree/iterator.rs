@@ -274,7 +274,7 @@ mod tests {
     {
         let mut tree = QuadTree::new(Rect::from_w_h(SIZE, SIZE));
         (0..10).for_each(|x| {
-            tree.insert(f(x)).unwrap();
+            tree.insert(f(x));
         });
         let bounded = tree
             .iter()

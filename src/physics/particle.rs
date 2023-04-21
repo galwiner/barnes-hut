@@ -7,6 +7,7 @@ use ParticleTag::*;
 
 use crate::drawing::alpha;
 use crate::quad_tree::Positioned;
+use crate::view_state::ViewState;
 
 use super::Universe;
 
@@ -57,17 +58,25 @@ impl Particle {
         self.position += self.velocity * dt;
     }
 
-    pub fn draw(&self, draw: &Draw, in_inspector: bool) {
-        let color = match (self.tag, in_inspector) {
+    pub fn draw(&self, draw: &Draw, view_state: &ViewState) {
+        let color = match (self.tag, view_state.is_inspecting(self.position)) {
             (Placed, _) => alpha(color::YELLOW, 1.0),
             (_, true) => alpha(color::YELLOW, 0.3),
             _ => alpha(color::GREEN, 0.5),
         };
-
-        draw.ellipse()
-            .xy(self.position)
-            .w_h(self.radius * 2.0, self.radius * 2.0)
-            .color(color);
+        let diameter = self.radius * 2.0;
+        if diameter > view_state.min_universe_feature_size() {
+            draw.ellipse()
+                .x_y(self.position.x, self.position.y)
+                .w_h(diameter, diameter)
+                .color(color);
+        } else {
+            let diameter = view_state.min_universe_feature_size();
+            draw.rect()
+                .x_y(self.position.x, self.position.y)
+                .w_h(diameter, diameter)
+                .color(color);
+        }
     }
 }
 

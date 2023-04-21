@@ -63,29 +63,22 @@ impl Universe {
     pub(super) fn insert(&mut self, particle: Particle) {
         self.space.insert(particle);
     }
-
-    fn draw_particle(draw: &Draw, p: &Particle, view_state: &ViewState) {
-        let position = p.position();
-        let in_inspector = view_state
-            .inspector_bounds()
-            .map(|inspector| inspector.contains(position))
-            .unwrap_or(false);
-        p.draw(draw, in_inspector);
-    }
 }
 
 impl Drawable for Universe {
     fn draw(&self, draw: &Draw, bounds: Rect, view_state: &ViewState) {
-        let bounded = self.space.iter().bounded(bounds);
-        bounded.clone().nodes().for_each(|node| {
-            draw.a(primitive::Rect::from(node.boundary()))
-                .color(TRANSPARENT)
-                .stroke(alpha(RED, 0.2))
-                .stroke_weight(0.5 / view_state.scale);
-        });
+        let iter = || self.space.iter().bounded(bounds);
         if view_state.draw_particles {
-            bounded.leaves().for_each(|particle| {
-                Self::draw_particle(draw, particle, view_state);
+            iter().leaves().for_each(|particle| {
+                particle.draw(draw, view_state);
+            });
+        }
+        if view_state.draw_quad_tree {
+            iter().nodes().for_each(|node| {
+                draw.a(primitive::Rect::from(node.boundary()))
+                    .color(TRANSPARENT)
+                    .stroke(alpha(RED, 0.2))
+                    .stroke_weight(0.5 / view_state.scale);
             });
         }
     }

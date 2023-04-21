@@ -1,4 +1,5 @@
 use std::default::Default;
+use std::time::Duration;
 
 use stats::Stats;
 
@@ -32,8 +33,10 @@ impl<M: Model> Simulation<M> {
 
     pub fn update(&mut self) {
         let update_start = self.stats.start_update();
-        let target_sim_age_secs = (update_start.real_age + FRAME_INTERVAL)
-            .min(update_start.simulated_secs + FRAME_INTERVAL * CATCHUP_RATE);
+        let target_sim_age_secs = at_least!(
+            (update_start.real_age + FRAME_INTERVAL),
+            update_start.simulated_secs + FRAME_INTERVAL * CATCHUP_RATE
+        );
 
         loop {
             self.stats.track_step(DT, || {

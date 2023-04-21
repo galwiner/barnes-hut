@@ -53,10 +53,10 @@ impl Stats {
         let steps = self.steps;
         let sim_time = Duration::from_secs_f32(self.simulated_secs);
         let real_time = Duration::from_secs_f32(self.real_age);
-        let sim_percent = (self.simulated_secs / self.real_age * 100.0).min(100.0);
-        let d_lag = Duration::from_secs_f32(delta.lag().max(0.0));
+        let sim_percent = at_most!(self.simulated_secs / self.real_age * 100.0, 100.0);
+        let d_lag = Duration::from_secs_f32(at_least!(delta.lag(), 0.0));
         let work_per_step =
-            Duration::from_secs_f32(delta.time_used_simulating / delta.steps.max(1) as f32);
+            Duration::from_secs_f32(delta.time_used_simulating / at_least!(delta.steps, 1) as f32);
         let fps = delta.frames as f32 / delta.real_age;
         info!(target:"barnes_hut::sim", 
             "step {steps:6} simulated {sim_time:6.3?} in {real_time:6.3?} ({sim_percent:3.0}%), \

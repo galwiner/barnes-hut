@@ -5,6 +5,7 @@ pub struct ViewState {
     /// The bounds of the inspector window in app coordinates.
     inspector: Option<Rect>,
     pub draw_particles: bool,
+    pub draw_quad_tree: bool,
 
     pub pan: Point2,
     pub scale: f32,
@@ -17,6 +18,7 @@ impl Default for ViewState {
         Self {
             inspector: None,
             draw_particles: true,
+            draw_quad_tree: false,
             pan: Point2::ZERO,
             scale: 1.0,
         }
@@ -43,6 +45,10 @@ impl ViewState {
         self.pan = Point2::ZERO;
     }
 
+    pub fn min_universe_feature_size(&self) -> f32 {
+        2.0 / self.scale
+    }
+
     pub fn inspect_at(&mut self, position: Point2) {
         self.inspector = Some(Rect::from_xy_wh(
             position,
@@ -52,21 +58,39 @@ impl ViewState {
         ));
     }
 
+    pub fn is_inspecting(&self, point: Point2) -> bool {
+        self.inspector_bounds()
+            .map(|r| r.contains(point))
+            .unwrap_or(false)
+    }
+
     pub fn inspector_app_bounds(&self) -> Option<Rect> {
         self.inspector
     }
 
     /// in universe coordinates
     pub fn inspector_bounds(&self) -> Option<Rect> {
-        self.inspector.map(|r| self.rect_to_universe(r))
+        self.inspector.map(|r| self.to_universe_rect(r))
     }
 
-    pub fn rect_to_universe(&self, rect: Rect) -> Rect {
-        Rect::from_xy_wh((rect.xy() - self.pan) / self.scale, rect.wh() / self.scale)
+    pub fn to_universe_point(&self, point: Point2) -> Point2 {
+        (point - self.pan) / self.scale
     }
 
-    pub fn toggle_draw_particles(&mut self) {
-        self.draw_particles ^= true;
-        info!("draw_particles: {}", self.draw_particles);
+    pub fn to_universe_rect(&self, rect: Rect) -> Rect {
+        Rect::from_xy_wh(self.to_universe_point(rect.xy()), rect.wh() / self.scale)
+    }
+
+    pub fn cycle_drawn_stuff(&mut self) {
+        (self.draw_particles, self.draw_quad_tree) =
+            match (self.draw_particles, self.draw_quad_tree) {
+                (true, false) => (true, true),
+                (true, true) => (false, true),
+                _ => (true, false),
+            };
+        info!(
+            "drawing particles: {}, quad tree: {}",
+            self.draw_particles, self.draw_quad_tree
+        );
     }
 }
