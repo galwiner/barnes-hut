@@ -1,9 +1,9 @@
 use std::mem;
 
-use nannou::geom::{Point2, Rect};
-use nannou::{color, Draw};
+use nannou::draw::primitive;
+use nannou::prelude::*;
 
-use crate::drawing::{alpha, draw_rect, Drawable};
+use crate::drawing::{alpha, Drawable, TRANSPARENT};
 use crate::quad_tree::iterator::TreeIterator;
 use crate::quad_tree::Positioned;
 use crate::quad_tree::QuadTree;
@@ -67,9 +67,9 @@ impl Universe {
     fn draw_particle(draw: &Draw, p: &Particle, view_state: &ViewState) {
         let position = p.position();
         let in_inspector = view_state
-            .inspector
-            .iter()
-            .any(|inspector| inspector.contains(position));
+            .inspector_bounds()
+            .map(|inspector| inspector.contains(position))
+            .unwrap_or(false);
         p.draw(draw, in_inspector);
     }
 }
@@ -78,7 +78,10 @@ impl Drawable for Universe {
     fn draw(&self, draw: &Draw, bounds: Rect, view_state: &ViewState) {
         let bounded = self.space.iter().bounded(bounds);
         bounded.clone().nodes().for_each(|node| {
-            draw_rect(node.boundary(), draw, alpha(color::RED, 0.2));
+            draw.a(primitive::Rect::from(node.boundary()))
+                .color(TRANSPARENT)
+                .stroke(alpha(RED, 0.2))
+                .stroke_weight(0.5 / view_state.scale);
         });
         if view_state.draw_particles {
             bounded.leaves().for_each(|particle| {

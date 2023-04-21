@@ -1,8 +1,7 @@
-use nannou::color::{IntoLinSrgba, LinSrgba};
-use nannou::draw::primitive::Rect as RectPrimitive;
+use nannou::color::{Alpha, IntoLinSrgba};
+use nannou::draw::primitive;
 use nannou::draw::properties::ColorScalar;
-use nannou::geom::Rect;
-use nannou::Draw;
+use nannou::prelude::*;
 
 use crate::view_state::ViewState;
 
@@ -11,7 +10,7 @@ pub trait Drawable {
 }
 
 pub fn draw_rect(rect: Rect, draw: &Draw, color: impl IntoLinSrgba<ColorScalar>) {
-    draw.a(RectPrimitive::from(rect))
+    draw.a(primitive::Rect::from(rect))
         .rgba(0.0, 0.0, 0.0, 0.0)
         .stroke(color.into_lin_srgba())
         .stroke_weight(0.5);
@@ -22,3 +21,8 @@ pub fn alpha(color: impl IntoLinSrgba<ColorScalar>, alpha: f32) -> LinSrgba {
     color.alpha = alpha;
     color
 }
+
+pub const TRANSPARENT: Alpha<Srgb<u8>, f32> = Alpha {
+    color: BLACK,
+    alpha: 0.0,
+};

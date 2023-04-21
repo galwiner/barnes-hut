@@ -76,13 +76,12 @@ fn view(app: &App, model: &AppModel, frame: Frame) {
     let app_draw = app.draw();
     app_draw.background().color(BLACK);
 
-    let sim_draw = app_draw.transform(model.view_state.transform);
-    model
-        .univ()
-        .draw(&sim_draw, frame.rect(), &model.view_state);
+    let sim_draw = app_draw.transform(model.view_state.universe_to_app_transform());
+    let sim_bounds = model.view_state.rect_to_universe(frame.rect());
+    model.univ().draw(&sim_draw, sim_bounds, &model.view_state);
 
-    if let Some(inspector) = model.view_state.inspector {
-        draw_rect(inspector, &sim_draw, alpha(LIGHTCORAL, 0.8));
+    if let Some(inspector) = model.view_state.inspector_app_bounds() {
+        draw_rect(inspector, &app_draw, alpha(LIGHTCORAL, 0.8));
     }
     // Write the result of our drawing to the window's frame.
     app_draw.to_frame(app, &frame).unwrap();
@@ -101,6 +100,7 @@ fn on_mouse_moved(_app: &App, model: &mut AppModel, position: Point2) {
 }
 
 fn on_key_pressed(_app: &App, model: &mut AppModel, key: Key) {
+    const PAN_DISTANCE: f32 = 50.0;
     match key {
         Key::Space => {
             model.view_state.toggle_draw_particles();
@@ -112,18 +112,35 @@ fn on_key_pressed(_app: &App, model: &mut AppModel, key: Key) {
             model.univ_m().add_random_particles(200);
         }
         Key::R => {
+            model.view_state.reset_zoom();
+            model.view_state.reset_pan();
+        }
+        Key::S => {
             model.simulation.reset_stats();
+        }
+        Key::Up => {
+            model.view_state.pan += Point2::new(0.0, -PAN_DISTANCE);
+        }
+        Key::Down => {
+            model.view_state.pan += Point2::new(0.0, PAN_DISTANCE);
+        }
+        Key::Left => {
+            model.view_state.pan += Point2::new(PAN_DISTANCE, 0.0);
+        }
+        Key::Right => {
+            model.view_state.pan += Point2::new(-PAN_DISTANCE, 0.0);
         }
         _ => {}
     }
 }
 
-fn on_mouse_wheel(_app: &App, model: &mut AppModel, delta: MouseScrollDelta, phase: TouchPhase) {
-    debug!("delta: {delta:#?}, phase: {phase:#?}");
+fn on_mouse_wheel(app: &App, model: &mut AppModel, delta: MouseScrollDelta, _phase: TouchPhase) {
     match delta {
         MouseScrollDelta::LineDelta(_x, y) => {
             const ZOOM_FACTOR: f32 = 1.1;
-            model.view_state.zoom(ZOOM_FACTOR.powf(y));
+            model
+                .view_state
+                .zoom_at(app.mouse.position(), ZOOM_FACTOR.powf(y));
         }
         MouseScrollDelta::PixelDelta(_position) => {}
     }
