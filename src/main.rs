@@ -61,25 +61,31 @@ fn init_app(app: &App) -> AppModel {
         .view(view)
         .mouse_pressed(on_mouse_pressed)
         .mouse_moved(on_mouse_moved)
+        .mouse_wheel(on_mouse_wheel)
         .key_pressed(on_key_pressed)
         .build()
         .unwrap();
 
     AppModel {
         simulation: Simulation::new(Universe::new(INITIAL_PARTICLE_COUNT)),
-        view_state: ViewState::new(),
+        view_state: Default::default(),
     }
 }
 
 fn view(app: &App, model: &AppModel, frame: Frame) {
-    let draw = app.draw();
-    draw.background().color(BLACK);
-    model.univ().draw(&draw, frame.rect(), &model.view_state);
+    let app_draw = app.draw();
+    app_draw.background().color(BLACK);
+
+    let sim_draw = app_draw.transform(model.view_state.transform);
+    model
+        .univ()
+        .draw(&sim_draw, frame.rect(), &model.view_state);
+
     if let Some(inspector) = model.view_state.inspector {
-        draw_rect(inspector, &draw, alpha(LIGHTCORAL, 0.8));
+        draw_rect(inspector, &sim_draw, alpha(LIGHTCORAL, 0.8));
     }
     // Write the result of our drawing to the window's frame.
-    draw.to_frame(app, &frame).unwrap();
+    app_draw.to_frame(app, &frame).unwrap();
 }
 
 fn update(_app: &App, model: &mut AppModel, _: Update) {
@@ -109,5 +115,16 @@ fn on_key_pressed(_app: &App, model: &mut AppModel, key: Key) {
             model.simulation.reset_stats();
         }
         _ => {}
+    }
+}
+
+fn on_mouse_wheel(_app: &App, model: &mut AppModel, delta: MouseScrollDelta, phase: TouchPhase) {
+    debug!("delta: {delta:#?}, phase: {phase:#?}");
+    match delta {
+        MouseScrollDelta::LineDelta(_x, y) => {
+            const ZOOM_FACTOR: f32 = 1.1;
+            model.view_state.zoom(ZOOM_FACTOR.powf(y));
+        }
+        MouseScrollDelta::PixelDelta(_position) => {}
     }
 }
