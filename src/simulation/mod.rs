@@ -1,3 +1,5 @@
+use std::default::Default;
+
 use stats::Stats;
 
 mod stats;
@@ -10,6 +12,7 @@ pub trait Model: Sized {
 pub struct Simulation<M> {
     pub model: M,
     stats: Stats,
+    last_logged_stats: Stats,
 }
 
 const TARGET_FPS: f32 = 60.0;
@@ -23,11 +26,12 @@ impl<M: Model> Simulation<M> {
         Self {
             model,
             stats: Stats::default(),
+            last_logged_stats: Stats::default(),
         }
     }
 
     pub fn update(&mut self) {
-        let update_start = self.stats.update_real_age();
+        let update_start = self.stats.start_update();
         let target_sim_age_secs = (update_start.real_age + FRAME_INTERVAL)
             .min(update_start.simulated_secs + FRAME_INTERVAL * CATCHUP_RATE);
 
@@ -43,10 +47,16 @@ impl<M: Model> Simulation<M> {
             }
         }
 
-        static_rate_limit!(Duration::from_secs(1), self.stats.log(update_start));
+        self.stats.end_update();
+
+        static_rate_limit!(Duration::from_secs(1), {
+            self.stats.log(self.last_logged_stats);
+            self.last_logged_stats = self.stats;
+        });
     }
 
     pub fn reset_stats(&mut self) {
-        self.stats.reset();
+        self.stats = Stats::default();
+        self.last_logged_stats = Stats::default();
     }
 }
