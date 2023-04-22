@@ -27,7 +27,7 @@ macro_rules! static_rate_limit {
 #[allow(unused_macros)]
 macro_rules! at_most {
     ($a: expr, $b: expr) => {{
-        $a.min($b)
+        ($a).min($b)
     }};
     ($a: expr, $b: expr, $($rest: expr),+) => {{
         at_most!($a, at_most!($b, $($rest),+))
@@ -37,7 +37,7 @@ macro_rules! at_most {
 #[allow(unused_macros)]
 macro_rules! at_least {
     ($a: expr, $b: expr) => {{
-        $a.max($b)
+        ($a).max($b)
     }};
     ($a: expr, $b: expr, $($rest: expr),+) => {{
         at_least!($a, at_least!($b, $($rest),+))

@@ -125,16 +125,16 @@ fn on_key_pressed(_app: &App, model: &mut AppModel, key: Key) {
             model.simulation.reset_stats();
         }
         Key::Up => {
-            model.view_state.pan += Point2::new(0.0, -PAN_DISTANCE);
+            model.view_state.pan.y -= PAN_DISTANCE;
         }
         Key::Down => {
-            model.view_state.pan += Point2::new(0.0, PAN_DISTANCE);
+            model.view_state.pan.y += PAN_DISTANCE;
         }
         Key::Left => {
-            model.view_state.pan += Point2::new(PAN_DISTANCE, 0.0);
+            model.view_state.pan.x += PAN_DISTANCE;
         }
         Key::Right => {
-            model.view_state.pan += Point2::new(-PAN_DISTANCE, 0.0);
+            model.view_state.pan.x += -PAN_DISTANCE;
         }
         _ => {}
     }
