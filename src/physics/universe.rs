@@ -63,6 +63,55 @@ impl Universe {
     pub(super) fn insert(&mut self, particle: Particle) {
         self.space.insert(particle);
     }
+
+    /*
+    pub fn approx_g_at(
+        &self,
+        point: S::Vector,
+        theta: S::Scalar,
+        grav_constant: S::Scalar,
+    ) -> S::Vector {
+        // Barnes-hut approximation:
+
+        match &self.subdivisions {
+            None => {
+                // If we're a leaf node, calculate the acceleration directly.
+                let distance_squared = S::magnitude_squared(self.total.position - point);
+                if distance_squared == S::ZERO {
+                    return S::ORIGIN;
+                }
+                let magnitude = grav_constant * self.total.mass / distance_squared;
+                let direction = S::normalize(self.total.position - point);
+                direction * magnitude
+            }
+            Some(subtrees) => {
+                let sum = S::ORIGIN;
+                for subtree in subtrees.iter() {
+                    todo!()
+                }
+                todo!()
+            }
+        }
+    }
+
+    fn single_mass_g(
+        &mut self,
+        body: PointMass<S>,
+        position: S::Vector,
+        grav_constant: S::Scalar,
+    ) -> S::Vector {
+        if (body.mass == S::ZERO) || (self.total.mass == S::ZERO) {
+            return S::ORIGIN;
+        }
+        let distance_squared = S::magnitude_squared(body.position - position);
+        if distance_squared == S::ZERO {
+            return S::ORIGIN;
+        }
+        let magnitude = grav_constant * self.total.mass / distance_squared;
+        let direction = S::normalize(body.position - position);
+        return direction * magnitude;
+    }
+     */
 }
 
 impl Drawable for Universe {
