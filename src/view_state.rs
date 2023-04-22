@@ -9,6 +9,8 @@ pub struct ViewState {
 
     pub pan: Point2,
     pub scale: f32,
+
+    pub panning_start: Option<Point2>,
 }
 
 const INSPECTOR_SIZE: f32 = 100.0;
@@ -21,6 +23,7 @@ impl Default for ViewState {
             draw_quad_tree: false,
             pan: Point2::ZERO,
             scale: 1.0,
+            panning_start: None,
         }
     }
 }
