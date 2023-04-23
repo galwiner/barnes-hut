@@ -11,7 +11,7 @@ pub trait Drawable {
 
 pub fn draw_rect(rect: Rect, draw: &Draw, color: impl IntoLinSrgba<ColorScalar>) {
     draw.a(primitive::Rect::from(rect))
-        .rgba(0.0, 0.0, 0.0, 0.0)
+        .color(TRANSPARENT)
         .stroke(color.into_lin_srgba())
         .stroke_weight(0.5);
 }

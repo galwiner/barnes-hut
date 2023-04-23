@@ -1,20 +1,18 @@
-use std::mem;
-
-use nannou::draw::primitive;
 use nannou::prelude::*;
 
-use crate::drawing::{alpha, Drawable, TRANSPARENT};
-use crate::quad_tree::iterator::TreeIterator;
+use crate::drawing::Drawable;
+use crate::physics::barnes_hut::GravityField2D;
+use crate::physics::point_mass::PointMass;
 use crate::quad_tree::Positioned;
-use crate::quad_tree::QuadTree;
 use crate::simulation;
 use crate::view_state::ViewState;
 
 use super::particle::Particle;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Universe {
-    space: QuadTree<Particle>,
+    particles: Vec<Particle>,
+    // space: QuadTree<Particle>,
 }
 
 impl Universe {
@@ -23,19 +21,13 @@ impl Universe {
     pub const G: f32 = 800.0;
 
     pub fn new(num_particles: usize) -> Self {
-        let mut new = Self {
-            space: Self::empty_space(),
-        };
+        let mut new = Self::default();
         new.add_random_particles(num_particles);
         new
     }
 
     pub fn clear(&mut self) {
-        self.space = Self::empty_space();
-    }
-
-    fn empty_space() -> QuadTree<Particle> {
-        QuadTree::new(Rect::from_w_h(Self::SIZE, Self::SIZE))
+        self.particles.clear();
     }
 
     pub fn add_particle_at(&mut self, position: Point2) {
@@ -48,20 +40,16 @@ impl Universe {
         }
     }
 
-    fn particles(&self) -> impl Iterator<Item = &Particle> {
-        self.space.iter().leaves()
-    }
-
-    pub(super) fn net_force_on(&self, particle: &Particle) -> Point2 {
-        const SUN_POSITION: Point2 = Point2::ZERO;
-        let from_sun = particle.position() - SUN_POSITION;
-        let distance = from_sun.length() / Self::SCALE;
-        let g = particle.mass * Self::G / (distance * distance);
-        g * -from_sun.normalize()
-    }
+    // pub(super) fn net_force_on(&self, particle: &Particle) -> Point2 {
+    //     const SUN_POSITION: Point2 = Point2::ZERO;
+    //     let from_sun = particle.position() - SUN_POSITION;
+    //     let distance = from_sun.length() / Self::SCALE;
+    //     let g = particle.mass * Self::G / (distance * distance);
+    //     g * -from_sun.normalize()
+    // }
 
     pub(super) fn insert(&mut self, particle: Particle) {
-        self.space.insert(particle);
+        self.particles.push(particle);
     }
 
     /*
@@ -116,54 +104,39 @@ impl Universe {
 
 impl Drawable for Universe {
     fn draw(&self, draw: &Draw, bounds: Rect, view_state: &ViewState) {
-        let iter = || self.space.iter().bounded(bounds);
         if view_state.draw_particles {
-            iter().leaves().for_each(|particle| {
+            for particle in &self.particles {
+                if bounds.contains(particle.position) {
+                    particle.draw(draw, view_state);
+                }
                 particle.draw(draw, view_state);
-            });
+            }
         }
         if view_state.draw_quad_tree {
-            iter().nodes().for_each(|node| {
-                draw.a(primitive::Rect::from(node.boundary()))
-                    .color(TRANSPARENT)
-                    .stroke(alpha(RED, 0.2))
-                    .stroke_weight(0.5 / view_state.scale);
-            });
+            // TODO
         }
     }
 }
 
 impl simulation::Model for Universe {
     fn step(&mut self, dt: f32) {
-        let old_universe = mem::replace(
-            &mut *self,
-            Self {
-                space: Self::empty_space(),
-            },
-        );
-
-        let update_particle = |particle: &Particle| {
-            let mut particle = particle.clone();
-            particle.update(dt, &old_universe);
-            particle
+        let mut gravity_field = GravityField2D::default();
+        for particle in &self.particles {
+            gravity_field += PointMass::new(particle.position(), particle.mass);
+        }
+        let update_particle = |particle: &mut Particle| {
+            let net_g = gravity_field.estimate_net_g(particle.position, 0.5, Self::G);
+            particle.update(dt, net_g);
         };
 
         #[cfg(feature = "parallel")]
-        self.space.extend({
-            use itertools::Itertools;
+        {
             use rayon::prelude::*;
-
-            old_universe
-                .particles()
-                .collect_vec()
-                .par_iter()
-                .cloned()
-                .map(update_particle)
-                .collect::<Vec<_>>()
-        });
-
+            self.particles.par_iter_mut().for_each(update_particle);
+        }
         #[cfg(not(feature = "parallel"))]
-        self.space
-            .extend(old_universe.particles().map(update_particle));
+        {
+            self.particles.iter().for_each(update_particle);
+        }
     }
 }

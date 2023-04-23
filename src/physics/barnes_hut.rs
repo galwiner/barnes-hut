@@ -7,7 +7,7 @@ use super::space::Space2D;
 
 pub type GravityField2D = GravityField<Space2D, 4>;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct GravityField<S, const SUBDIVS: usize>
 where
     S: DivisibleSpace<SUBDIVS>,
@@ -34,11 +34,11 @@ where
 impl<S, const SUBDIVS: usize> Default for GravityField<S, SUBDIVS>
 where
     S: DivisibleSpace<SUBDIVS>,
-    [Self; SUBDIVS]: Default,
+    [(); SUBDIVS]: Default,
 {
     fn default() -> Self {
         Self {
-            pivot: S::ORIGIN,
+            pivot: S::ZERO_VECTOR,
             bounds: S::EMPTY_BOUNDS,
             total: Default::default(),
             subdivisions: None,
@@ -46,14 +46,12 @@ where
     }
 }
 
-impl<S, const SUBDIVS: usize> AddAssign<PointMass<S>> for GravityField<S, SUBDIVS>
+impl<S, const NUM_SUBDIVISIONS: usize> GravityField<S, NUM_SUBDIVISIONS>
 where
-    S: DivisibleSpace<SUBDIVS>,
-    S::Vector: PartialEq,
-    PointMass<S>: Copy,
-    [Self; SUBDIVS]: Default,
+    S: DivisibleSpace<NUM_SUBDIVISIONS>,
+    [Self; NUM_SUBDIVISIONS]: Default,
 {
-    fn add_assign(&mut self, rhs: PointMass<S>) {
+    pub fn insert(&mut self, rhs: PointMass<S>) {
         if rhs.mass == S::ZERO {
             return;
         }
@@ -73,21 +71,46 @@ where
         self.total += rhs;
         self.add_to_subdivision(rhs);
     }
-}
 
-impl<S, const SUBDIVS: usize> GravityField<S, SUBDIVS>
-where
-    S: DivisibleSpace<SUBDIVS>,
-    Self: AddAssign<PointMass<S>>,
-    [Self; SUBDIVS]: Default,
-{
-    fn add_to_subdivision(&mut self, body: PointMass<S>) {
+    pub fn estimate_net_g(
+        &self,
+        at: S::Vector,
+        theta: S::Scalar,
+        grav_const: S::Scalar,
+    ) -> S::Vector {
+        let mut accel = S::ZERO_VECTOR;
+        GravityFieldIterator {
+            stack: vec![&self],
+            location: at,
+            theta,
+        }
+        .for_each(|body_or_aggregate| {
+            accel += body_or_aggregate.g_at(at, grav_const);
+        });
+        accel
+    }
+
+    fn add_to_subdivision(&mut self, body: PointMass<S>)
+    where
+        [Self; NUM_SUBDIVISIONS]: Default,
+        Self: AddAssign<PointMass<S>>,
+    {
         let index = S::subdivision_index(self.pivot, body.position);
-        let subdivisions: &mut [Self; SUBDIVS] = self
+        let subdivisions: &mut [Self; NUM_SUBDIVISIONS] = self
             .subdivisions
             .get_or_insert_with(Default::default)
             .borrow_mut();
         subdivisions[index] += body;
+    }
+}
+
+impl<S, const NUM_SUBDIVISIONS: usize> AddAssign<PointMass<S>> for GravityField<S, NUM_SUBDIVISIONS>
+where
+    S: DivisibleSpace<NUM_SUBDIVISIONS>,
+    [Self; NUM_SUBDIVISIONS]: Default,
+{
+    fn add_assign(&mut self, rhs: PointMass<S>) {
+        self.insert(rhs);
     }
 }
 
@@ -103,19 +126,27 @@ where
 impl<'a, S, const SUBDIVS: usize> Iterator for GravityFieldIterator<'a, S, SUBDIVS>
 where
     S: DivisibleSpace<SUBDIVS>,
-    PointMass<S>: Copy,
 {
     type Item = PointMass<S>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(tree) = self.stack.pop() {
-            if tree.subdivisions.is_none() {
-                return Some(tree.total);
+            if tree.total.mass == S::ZERO {
+                continue;
             }
-            let distance = S::magnitude(tree.total.position - self.location);
-            let size = S::max_dimension(tree.bounds);
-            if size / distance < self.theta {
-                return Some(tree.total);
+            if tree.subdivisions.is_none() {
+                if tree.total.position != self.location {
+                    return Some(tree.total);
+                } else {
+                    continue;
+                }
+            }
+            if !S::contains(tree.bounds, self.location) {
+                let distance = S::magnitude(tree.total.position - self.location);
+                let size = S::max_dimension(tree.bounds);
+                if size / distance < self.theta {
+                    return Some(tree.total);
+                }
             }
             let subtrees = &tree.subdivisions.as_ref().unwrap()[..];
             self.stack.extend(subtrees)

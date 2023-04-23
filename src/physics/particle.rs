@@ -9,8 +9,6 @@ use crate::drawing::alpha;
 use crate::quad_tree::Positioned;
 use crate::view_state::ViewState;
 
-use super::Universe;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ParticleTag {
     Default,
@@ -52,8 +50,7 @@ impl Particle {
         }
     }
 
-    pub fn update(&mut self, dt: f32, universe: &Universe) {
-        let acceleration = universe.net_force_on(self) / self.mass;
+    pub fn update(&mut self, dt: f32, acceleration: Vec2) {
         self.velocity += acceleration * dt;
         self.position += self.velocity * dt;
     }
