@@ -1,5 +1,4 @@
 use std::default::Default;
-use std::time::Duration;
 
 use stats::Stats;
 
@@ -7,6 +6,9 @@ mod stats;
 
 pub trait Model: Sized {
     fn step(&mut self, dt: f32);
+    fn stats_string(&self) -> String {
+        "".to_string()
+    }
 }
 
 #[derive(Debug, Default)]
@@ -71,8 +73,9 @@ impl<M: Model> Simulation<M> {
         self.stats_at_prev_update_start = update_start;
         self.stats.end_update();
 
-        static_rate_limit!(Duration::from_secs(1), {
-            self.stats.log(self.stats_last_logged);
+        static_rate_limit!(secs = 1, {
+            self.stats
+                .log(self.stats_last_logged, self.model.stats_string().as_str());
             self.stats_last_logged = self.stats;
         });
     }

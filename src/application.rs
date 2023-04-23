@@ -11,7 +11,7 @@ pub struct AppModel {
     view_state: ViewState,
 }
 
-const INITIAL_PARTICLE_COUNT: usize = 1000;
+const INITIAL_PARTICLE_COUNT: usize = 10000;
 const KEYBOARD_PAN_DISTANCE: f32 = 50.0;
 const ZOOM_FACTOR: f32 = 1.1;
 

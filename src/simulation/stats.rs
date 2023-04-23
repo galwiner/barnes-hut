@@ -55,11 +55,12 @@ impl Stats {
         }
     }
 
-    pub fn log(&self, last_logged: Self) {
+    pub fn log(&self, last_logged: Self, model_stats: &str) {
         let delta = self.relative_to(last_logged);
 
         let steps = self.steps;
         assert!(self.simulated_secs >= 0.0);
+
         let sim_time = Duration::from_secs_f32(self.simulated_secs);
         let real_time = Duration::from_secs_f32(self.real_age);
         let sim_percent = at_most!(self.simulated_secs / self.real_age * 100.0, 100.0);
@@ -68,7 +69,7 @@ impl Stats {
         let fps = delta.frames as f32 / delta.real_age;
         let hz = delta.steps as f32 / delta.real_age;
         info!(target:"barnes_hut::sim",
-            "step {steps:6} simulated {sim_time:>6.1?} in {real_time:>6.1?} ({sim_percent:3.0}%), \
+            "step {steps:6} {model_stats}simulated {sim_time:>7.1?} in {real_time:>6.1?} ({sim_percent:3.0}%), \
              lag{d_lag_ms:>+6.3?}ms, \
              spent:{work_per_step:>9.3?}/step {fps:3.0}FPS, {hz:3.0}Hz"
         );

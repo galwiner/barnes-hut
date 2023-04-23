@@ -1,8 +1,8 @@
 macro_rules! static_rate_limit {
-    ($interval: expr) => {{
+    (secs = $interval: expr) => {{
         static_rate_limit!($interval, true)
     }};
-    ($interval: expr, $body: expr) => {{
+    (secs = $interval: expr, $body: expr) => {{
         use std::cell::RefCell;
         use std::time::{Instant};
 
@@ -10,7 +10,7 @@ macro_rules! static_rate_limit {
         let run_now = LAST_LOGGED_AT.with(|last_logged_at| {
             last_logged_at
                 .borrow()
-                .map(|last_logged_at| last_logged_at.elapsed() >= $interval)
+                .map(|last_logged_at| last_logged_at.elapsed().as_secs_f32() >= $interval as f32)
                 .unwrap_or(true)
         });
         if run_now {
@@ -49,7 +49,7 @@ mod tests {
     #[test]
     fn test_static_rate_limit() {
         assert_eq!(
-            [0, 1, 2].map(|_| static_rate_limit!(std::time::Duration::from_secs(1), true)),
+            [0, 1, 2].map(|_| static_rate_limit!(secs = 1, true)),
             [true, false, false]
         );
     }

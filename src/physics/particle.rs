@@ -1,23 +1,21 @@
-use nannou::geom::{vec2, Point2, Vec2};
+use nannou::prelude::*;
 use nannou::rand::{thread_rng, Rng};
-use nannou::{color, Draw};
 use rand_distr::Normal;
 
-use ParticleTag::*;
+use ParticleType::*;
 
 use crate::drawing::alpha;
-use crate::quad_tree::Positioned;
 use crate::view_state::ViewState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ParticleTag {
+enum ParticleType {
     Default,
     Placed,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(super) struct Particle {
-    tag: ParticleTag,
+    tag: ParticleType,
     pub mass: f32,
     pub position: Point2,
     velocity: Vec2,
@@ -28,24 +26,33 @@ impl Particle {
     pub fn new(position: Point2) -> Self {
         Self {
             position,
-            velocity: vec2(50.0, 0.0),
-            mass: 10.0,
+            velocity: vec2(0.0, 0.0),
+            mass: 1000.0,
             radius: 5.0,
             tag: Placed,
         }
     }
 
     pub fn new_random() -> Self {
-        let normal = Normal::new(0.0, 1.0).unwrap();
+        let normal_dist = Normal::new(0.0, 1.0).unwrap();
         let uniform = || thread_rng().gen::<f32>();
-        let normal_random_pt2 =
-            || Point2::new(thread_rng().sample(normal), thread_rng().sample(normal));
+        let normal_random_pt2 = || {
+            Point2::new(
+                thread_rng().sample(normal_dist),
+                thread_rng().sample(normal_dist),
+            )
+        };
+
+        let size = 0.5 + (uniform() * 3.0);
+
+        let position = normal_random_pt2() * 200.0;
+        let velocity = position.rotate(-PI / 2.0).normalize() * position.length().powf(0.5) * 5.0;
 
         Self {
-            position: normal_random_pt2() * 200.0,
-            velocity: normal_random_pt2() * 50.0,
-            mass: uniform() * 10.0,
-            radius: 3.0,
+            position,
+            velocity,
+            mass: size * size * size,
+            radius: size,
             tag: Default,
         }
     }
@@ -57,9 +64,9 @@ impl Particle {
 
     pub fn draw(&self, draw: &Draw, view_state: &ViewState) {
         let color = match (self.tag, view_state.is_inspecting(self.position)) {
-            (Placed, _) => alpha(color::YELLOW, 1.0),
-            (_, true) => alpha(color::YELLOW, 0.3),
-            _ => alpha(color::GREEN, 0.5),
+            (Placed, _) => alpha(TURQUOISE, 0.5),
+            (_, true) => alpha(YELLOW, 0.2),
+            _ => alpha(GREEN, 0.2),
         };
         let diameter = self.radius * 2.0;
         if diameter > view_state.min_universe_feature_size() {
@@ -74,17 +81,5 @@ impl Particle {
                 .w_h(diameter, diameter)
                 .color(color);
         }
-    }
-}
-
-impl Positioned for Particle {
-    fn position(&self) -> Point2 {
-        self.position
-    }
-}
-
-impl Positioned for &Particle {
-    fn position(&self) -> Point2 {
-        self.position
     }
 }

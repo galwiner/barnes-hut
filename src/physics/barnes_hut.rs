@@ -1,75 +1,152 @@
-use std::borrow::BorrowMut;
 use std::ops::AddAssign;
+
+use crate::physics::space_2d::Space2D;
 
 use super::point_mass::PointMass;
 use super::space::DivisibleSpace;
-use super::space::Space2D;
 
 pub type GravityField2D = GravityField<Space2D, 4>;
 
-#[derive(Debug, Clone)]
-pub struct GravityField<S, const SUBDIVS: usize>
+#[derive(Debug, Clone, Derivative)]
+#[derivative(Default)]
+enum Child<S, const NUM_SUBDIVISIONS: usize>
 where
-    S: DivisibleSpace<SUBDIVS>,
+    S: DivisibleSpace<NUM_SUBDIVISIONS>,
 {
-    /// The point about which space is subdivided.  Currently this will be taken as the midpoint
-    /// of the first two nodes to end up in a subdivision.
-    /// This could result in pathological cases e.g. where nodes are placed in order along a line,
-    /// and in theory means that the subdivision debt is unbounded. Hopefully in practice the tree
-    /// will be fairly balanced.  If not, we could consider using a different pivot point, or e.g.
-    /// inserting points into the tree in a random order.
-    pivot: S::Vector,
+    #[derivative(Default)]
+    Empty,
+    Body(PointMass<S>),
+    Aggregate(Box<MassAggregate<S, NUM_SUBDIVISIONS>>),
+}
 
-    /// The minimal axis-aligned bounding box that contains all points at or under this node.
-    bounds: S::Bounds,
-
+#[derive(Debug, Clone)]
+pub struct MassAggregate<S, const NUM_SUBDIVISIONS: usize>
+where
+    S: DivisibleSpace<NUM_SUBDIVISIONS>,
+{
     /// The mass and center of mass of all points at or under this node.
     total: PointMass<S>,
 
-    /// The `None` case represents a leaf node, otherwise the `total` at this node is an aggregate
-    /// of the subtrees.
-    subdivisions: Option<Box<[Self; SUBDIVS]>>,
+    subdivisions: [Child<S, NUM_SUBDIVISIONS>; NUM_SUBDIVISIONS],
 }
 
-impl<S, const SUBDIVS: usize> Default for GravityField<S, SUBDIVS>
+impl<S, const NUM_SUBDIVISIONS: usize> Default for MassAggregate<S, NUM_SUBDIVISIONS>
 where
-    S: DivisibleSpace<SUBDIVS>,
-    [(); SUBDIVS]: Default,
+    S: DivisibleSpace<NUM_SUBDIVISIONS>,
 {
     fn default() -> Self {
         Self {
-            pivot: S::ZERO_VECTOR,
-            bounds: S::EMPTY_BOUNDS,
-            total: Default::default(),
-            subdivisions: None,
+            total: PointMass::default(),
+            subdivisions: S::subdivisions_array_default(),
         }
     }
+}
+
+impl<S, const NUM_SUBDIVISIONS: usize> MassAggregate<S, NUM_SUBDIVISIONS>
+where
+    S: DivisibleSpace<NUM_SUBDIVISIONS>,
+{
+    fn insert(&mut self, pivot: S::Vector, width: S::Scalar, body: PointMass<S>) {
+        self.total += body;
+        let subdivision_index = S::subdivision_index(pivot, body.position);
+        let child = &mut self.subdivisions[subdivision_index];
+
+        match child {
+            Child::Empty => {
+                *child = Child::Body(body);
+            }
+            Child::Body(existing_body) => {
+                let mut aggregate = MassAggregate::default();
+                let (width, pivot) = S::subtree_width_pivot(subdivision_index, width, pivot);
+                if width < S::EPSILON {
+                    *existing_body += body;
+                    return;
+                }
+                aggregate.insert(pivot, width, *existing_body);
+                aggregate.insert(pivot, width, body);
+                *child = Child::Aggregate(Box::new(aggregate));
+            }
+            Child::Aggregate(aggregate) => {
+                let (width, pivot) = S::subtree_width_pivot(subdivision_index, width, pivot);
+                aggregate.insert(pivot, width, body);
+            }
+        }
+    }
+
+    pub fn estimate_net_g(
+        &self,
+        other_position: S::Vector,
+        pivot: S::Vector,
+        width: S::Scalar,
+        theta_squared: S::Scalar,
+        grav_const: S::Scalar,
+    ) -> S::Vector {
+        let to_self: S::Vector = self.total.position - other_position;
+        let distance_squared: S::Scalar = S::magnitude_squared(to_self);
+        if (width * width) <= theta_squared * distance_squared {
+            return self.total.g_at(other_position, grav_const);
+        }
+
+        let mut sum = S::VECTOR_ZERO;
+
+        self.subdivisions
+            .iter()
+            .enumerate()
+            .for_each(|(i, child)| match child {
+                Child::Empty => {}
+                Child::Body(body) => {
+                    sum += body.g_at(other_position, grav_const);
+                }
+                Child::Aggregate(aggregate) => {
+                    let (width, pivot) = S::subtree_width_pivot(i, width, pivot);
+                    sum += aggregate.estimate_net_g(
+                        other_position,
+                        pivot,
+                        width,
+                        theta_squared,
+                        grav_const,
+                    );
+                }
+            });
+        sum
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct GravityField<S, const NUM_SUBDIVISIONS: usize>
+where
+    S: DivisibleSpace<NUM_SUBDIVISIONS>,
+{
+    origin: S::Vector,
+
+    /// The length in each dimension of the space covered by this field.  At present this must be set large enough up-front.
+    width: S::Scalar,
+
+    root: MassAggregate<S, NUM_SUBDIVISIONS>,
 }
 
 impl<S, const NUM_SUBDIVISIONS: usize> GravityField<S, NUM_SUBDIVISIONS>
 where
     S: DivisibleSpace<NUM_SUBDIVISIONS>,
-    [Self; NUM_SUBDIVISIONS]: Default,
 {
+    pub fn new(size: S::Scalar) -> Self {
+        Self {
+            origin: S::VECTOR_ZERO,
+            width: size,
+            root: Default::default(),
+        }
+    }
+
     pub fn insert(&mut self, rhs: PointMass<S>) {
-        if rhs.mass == S::ZERO {
+        if rhs.mass == S::SCALAR_ZERO {
             return;
         }
-
-        if self.total.mass == S::ZERO {
-            self.bounds = S::point_bounds(rhs.position);
-            self.total = rhs;
+        if S::max_abs_dimension(rhs.position) >= self.width {
+            // TODO!
+            warn!("PointMass out of bounds: {:?}", rhs);
             return;
         }
-
-        self.bounds = S::expand_bounds(self.bounds, rhs.position);
-        if self.subdivisions.is_none() {
-            self.subdivisions = Some(Default::default());
-            self.pivot = S::midpoint(self.bounds);
-            self.add_to_subdivision(self.total);
-        }
-        self.total += rhs;
-        self.add_to_subdivision(rhs);
+        self.root.insert(self.origin, self.width, rhs);
     }
 
     pub fn estimate_net_g(
@@ -78,79 +155,16 @@ where
         theta: S::Scalar,
         grav_const: S::Scalar,
     ) -> S::Vector {
-        let mut accel = S::ZERO_VECTOR;
-        GravityFieldIterator {
-            stack: vec![&self],
-            location: at,
-            theta,
-        }
-        .for_each(|body_or_aggregate| {
-            accel += body_or_aggregate.g_at(at, grav_const);
-        });
-        accel
-    }
-
-    fn add_to_subdivision(&mut self, body: PointMass<S>)
-    where
-        [Self; NUM_SUBDIVISIONS]: Default,
-        Self: AddAssign<PointMass<S>>,
-    {
-        let index = S::subdivision_index(self.pivot, body.position);
-        let subdivisions: &mut [Self; NUM_SUBDIVISIONS] = self
-            .subdivisions
-            .get_or_insert_with(Default::default)
-            .borrow_mut();
-        subdivisions[index] += body;
+        self.root
+            .estimate_net_g(at, self.origin, self.width, theta * theta, grav_const)
     }
 }
 
 impl<S, const NUM_SUBDIVISIONS: usize> AddAssign<PointMass<S>> for GravityField<S, NUM_SUBDIVISIONS>
 where
     S: DivisibleSpace<NUM_SUBDIVISIONS>,
-    [Self; NUM_SUBDIVISIONS]: Default,
 {
     fn add_assign(&mut self, rhs: PointMass<S>) {
         self.insert(rhs);
-    }
-}
-
-struct GravityFieldIterator<'a, S, const SUBDIVS: usize>
-where
-    S: DivisibleSpace<SUBDIVS>,
-{
-    stack: Vec<&'a GravityField<S, SUBDIVS>>,
-    location: S::Vector,
-    theta: S::Scalar,
-}
-
-impl<'a, S, const SUBDIVS: usize> Iterator for GravityFieldIterator<'a, S, SUBDIVS>
-where
-    S: DivisibleSpace<SUBDIVS>,
-{
-    type Item = PointMass<S>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(tree) = self.stack.pop() {
-            if tree.total.mass == S::ZERO {
-                continue;
-            }
-            if tree.subdivisions.is_none() {
-                if tree.total.position != self.location {
-                    return Some(tree.total);
-                } else {
-                    continue;
-                }
-            }
-            if !S::contains(tree.bounds, self.location) {
-                let distance = S::magnitude(tree.total.position - self.location);
-                let size = S::max_dimension(tree.bounds);
-                if size / distance < self.theta {
-                    return Some(tree.total);
-                }
-            }
-            let subtrees = &tree.subdivisions.as_ref().unwrap()[..];
-            self.stack.extend(subtrees)
-        }
-        None
     }
 }

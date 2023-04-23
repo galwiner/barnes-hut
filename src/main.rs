@@ -7,6 +7,7 @@ extern crate nannou;
 #[cfg(feature = "parallel")]
 extern crate rayon;
 #[cfg(test)]
+#[allow(unused_imports)]
 #[macro_use]
 extern crate static_assertions;
 
@@ -18,7 +19,6 @@ mod application;
 mod created;
 mod drawing;
 mod physics;
-mod quad_tree;
 mod simulation;
 mod view_state;
 

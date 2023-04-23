@@ -3,7 +3,6 @@ use nannou::prelude::*;
 use crate::drawing::Drawable;
 use crate::physics::barnes_hut::GravityField2D;
 use crate::physics::point_mass::PointMass;
-use crate::quad_tree::Positioned;
 use crate::simulation;
 use crate::view_state::ViewState;
 
@@ -12,13 +11,11 @@ use super::particle::Particle;
 #[derive(Debug, Clone, Default)]
 pub struct Universe {
     particles: Vec<Particle>,
-    // space: QuadTree<Particle>,
 }
 
 impl Universe {
-    pub const SIZE: f32 = 1e6;
-    pub const SCALE: f32 = 20.0;
-    pub const G: f32 = 800.0;
+    pub const G: f32 = 1e2;
+    pub const THETA: f32 = 0.7;
 
     pub fn new(num_particles: usize) -> Self {
         let mut new = Self::default();
@@ -40,66 +37,9 @@ impl Universe {
         }
     }
 
-    // pub(super) fn net_force_on(&self, particle: &Particle) -> Point2 {
-    //     const SUN_POSITION: Point2 = Point2::ZERO;
-    //     let from_sun = particle.position() - SUN_POSITION;
-    //     let distance = from_sun.length() / Self::SCALE;
-    //     let g = particle.mass * Self::G / (distance * distance);
-    //     g * -from_sun.normalize()
-    // }
-
     pub(super) fn insert(&mut self, particle: Particle) {
         self.particles.push(particle);
     }
-
-    /*
-    pub fn approx_g_at(
-        &self,
-        point: S::Vector,
-        theta: S::Scalar,
-        grav_constant: S::Scalar,
-    ) -> S::Vector {
-        // Barnes-hut approximation:
-
-        match &self.subdivisions {
-            None => {
-                // If we're a leaf node, calculate the acceleration directly.
-                let distance_squared = S::magnitude_squared(self.total.position - point);
-                if distance_squared == S::ZERO {
-                    return S::ORIGIN;
-                }
-                let magnitude = grav_constant * self.total.mass / distance_squared;
-                let direction = S::normalize(self.total.position - point);
-                direction * magnitude
-            }
-            Some(subtrees) => {
-                let sum = S::ORIGIN;
-                for subtree in subtrees.iter() {
-                    todo!()
-                }
-                todo!()
-            }
-        }
-    }
-
-    fn single_mass_g(
-        &mut self,
-        body: PointMass<S>,
-        position: S::Vector,
-        grav_constant: S::Scalar,
-    ) -> S::Vector {
-        if (body.mass == S::ZERO) || (self.total.mass == S::ZERO) {
-            return S::ORIGIN;
-        }
-        let distance_squared = S::magnitude_squared(body.position - position);
-        if distance_squared == S::ZERO {
-            return S::ORIGIN;
-        }
-        let magnitude = grav_constant * self.total.mass / distance_squared;
-        let direction = S::normalize(body.position - position);
-        return direction * magnitude;
-    }
-     */
 }
 
 impl Drawable for Universe {
@@ -113,19 +53,29 @@ impl Drawable for Universe {
             }
         }
         if view_state.draw_quad_tree {
-            // TODO
+            // TODO?
         }
     }
 }
 
 impl simulation::Model for Universe {
     fn step(&mut self, dt: f32) {
-        let mut gravity_field = GravityField2D::default();
+        let bounds: Rect = self
+            .particles
+            .iter()
+            .fold(Rect::from_w_h(0.0, 0.0), |bounds, particle| {
+                bounds.stretch_to(particle.position)
+            });
+        let size = bounds.w().max(bounds.h());
+
+        let mut gravity_field = GravityField2D::new(size);
+
         for particle in &self.particles {
-            gravity_field += PointMass::new(particle.position(), particle.mass);
+            gravity_field += PointMass::new(particle.position, particle.mass);
         }
+        gravity_field += PointMass::new(Point2::new(0.0, 0.0), 1e3);
         let update_particle = |particle: &mut Particle| {
-            let net_g = gravity_field.estimate_net_g(particle.position, 0.5, Self::G);
+            let net_g = gravity_field.estimate_net_g(particle.position, Self::THETA, Self::G);
             particle.update(dt, net_g);
         };
 
@@ -138,5 +88,9 @@ impl simulation::Model for Universe {
         {
             self.particles.iter().for_each(update_particle);
         }
+    }
+
+    fn stats_string(&self) -> String {
+        format!("p:{:6} ", self.particles.len())
     }
 }
