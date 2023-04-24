@@ -1,32 +1,25 @@
 use nannou::prelude::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Derivative)]
+#[derivative(Default)]
 pub struct ViewState {
     /// The bounds of the inspector window in app coordinates.
     inspector: Option<Rect>,
+
+    #[derivative(Default(value = "true"))]
     pub draw_particles: bool,
+
     pub draw_quad_tree: bool,
 
     pub pan: Point2,
+
+    #[derivative(Default(value = "1.0"))]
     pub scale: f32,
 
-    pub panning_start: Option<Point2>,
+    mouse_pan_prev_position: Option<Point2>,
 }
 
 const INSPECTOR_SIZE: f32 = 100.0;
-
-impl Default for ViewState {
-    fn default() -> Self {
-        Self {
-            inspector: None,
-            draw_particles: true,
-            draw_quad_tree: false,
-            pan: Point2::ZERO,
-            scale: 1.0,
-            panning_start: None,
-        }
-    }
-}
 
 impl ViewState {
     pub fn universe_to_app_transform(&self) -> Mat4 {
@@ -46,6 +39,17 @@ impl ViewState {
 
     pub fn reset_pan(&mut self) {
         self.pan = Point2::ZERO;
+    }
+
+    pub fn mouse_pan(&mut self, position: Point2) {
+        if let Some(prev_position) = self.mouse_pan_prev_position {
+            self.pan += position - prev_position;
+        }
+        self.mouse_pan_prev_position = Some(position);
+    }
+
+    pub fn end_mouse_pan(&mut self) {
+        self.mouse_pan_prev_position = None;
     }
 
     pub fn min_universe_feature_size(&self) -> f32 {

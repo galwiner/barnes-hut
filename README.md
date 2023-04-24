@@ -26,7 +26,7 @@ A nannou crate is used as the graphics framework.
 - [ ] Easy way to tune parameters at runtime, e.g. https://github.com/tversteeg/const-tweaker
     - [ ] Extract a `Config` struct - possibly separating physics and app / graphics config
 - [ ] wasm build
-- [ ] Pan with middle mouse button
+- [X] Pan with middle mouse button
     - [ ] Touch controls?
 - [ ] Some interface for adding / removing bodies
 

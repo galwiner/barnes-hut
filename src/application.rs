@@ -52,10 +52,17 @@ fn view(app: &App, app_model: &AppModel, frame: Frame) {
 fn event_handler(app: &App, model: &mut AppModel, event: WindowEvent) {
     let view = &mut model.view_state;
     let universe = &mut model.simulation.model;
+    let mouse = &app.mouse;
 
     match event {
         // mouse events:
-        MouseMoved(position) => view.inspect_at(position),
+        MouseMoved(position) => {
+            if mouse.buttons.middle().is_down() {
+                view.mouse_pan(mouse.position());
+            }
+            view.inspect_at(position);
+        }
+        MouseReleased(MouseButton::Middle) => view.end_mouse_pan(),
         MousePressed(MouseButton::Left) => {
             let universe_position = view.to_universe_point(app.mouse.position());
             universe.add_particle_at(universe_position);
