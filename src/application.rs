@@ -1,35 +1,62 @@
-use nannou::prelude::*;
+use async_std::task;
 use MouseScrollDelta::*;
+use nannou::prelude::*;
+use nannou::wgpu::{Backends, DeviceDescriptor, Limits};
+use task::block_on;
 
 use crate::drawing::{alpha, draw_rect, Drawable};
 use crate::physics::Universe;
 use crate::simulation::Simulation;
 use crate::view_state::ViewState;
 
-pub struct AppModel {
+struct AppModel {
     simulation: Simulation<Universe>,
     view_state: ViewState,
 }
 
-const INITIAL_PARTICLE_COUNT: usize = 10000;
+const INITIAL_PARTICLE_COUNT: usize = 1000;
 const KEYBOARD_PAN_DISTANCE: f32 = 50.0;
 const ZOOM_FACTOR: f32 = 1.1;
 
-pub fn init_app(app: &App) -> AppModel {
-    app.new_window()
-        .size(1200, 800)
-        .view(view)
-        .event(event_handler)
-        .build()
-        .unwrap();
+pub fn run_sync() {
+    block_on(run_async());
+}
 
+pub async fn run_async() {
+    app::Builder::new_async(|app| Box::new(init_app(app)))
+        .update(update)
+        .backends(Backends::PRIMARY | Backends::GL)
+        .run_async()
+        .await;
+}
+
+async fn init_app(app: &App) -> AppModel {
+    create_window(app).await;
     AppModel {
         simulation: Simulation::new(Universe::new(INITIAL_PARTICLE_COUNT)),
         view_state: Default::default(),
     }
 }
 
-pub fn update(_app: &App, model: &mut AppModel, _: Update) {
+async fn create_window(app: &App) {
+    app.new_window()
+        .title("Barnes-Hut Simulation")
+        //.size(1200, 800)
+        .view(view)
+        .event(event_handler)
+        .device_descriptor(DeviceDescriptor {
+            limits: Limits {
+                max_texture_dimension_2d: 8192,
+                ..Limits::downlevel_webgl2_defaults()
+            },
+            ..Default::default()
+        })
+        .build_async()
+        .await
+        .unwrap();
+}
+
+fn update(_app: &App, model: &mut AppModel, _: Update) {
     model.simulation.update();
 }
 

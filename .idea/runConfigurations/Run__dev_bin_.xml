@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run (dev bin)" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <option name="command" value="run --package barnes-hut --bin barnes-hut" />
+    <option name="command" value="run" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="emulateTerminal" value="false" />
     <option name="channel" value="DEFAULT" />

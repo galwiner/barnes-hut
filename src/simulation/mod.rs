@@ -26,6 +26,11 @@ const CATCHUP_RATE: f32 = 1.1;
 
 impl<M: Model> Simulation<M> {
     pub fn new(model: M) -> Self {
+        println!("file {} module_path: {}",file!(), module_path!());
+        debug!("debug test");
+        warn!("warn test");
+
+
         Self {
             model,
             stats: Stats::default(),

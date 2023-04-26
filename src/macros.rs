@@ -4,7 +4,7 @@ macro_rules! static_rate_limit {
     }};
     (secs = $interval: expr, $body: expr) => {{
         use std::cell::RefCell;
-        use std::time::{Instant};
+        use instant::Instant;
 
         thread_local! (static LAST_LOGGED_AT: RefCell<Option<Instant>> = RefCell::new(None));
         let run_now = LAST_LOGGED_AT.with(|last_logged_at| {

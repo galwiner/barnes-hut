@@ -1,0 +1,15 @@
+<html>
+<head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+</head>
+<body>
+<script type="module">
+    import init, {start} from './pkg/barnes_hut.js';
+
+    (async () => {
+        await init();
+        start();
+    })();
+</script>
+</body>
+</html>

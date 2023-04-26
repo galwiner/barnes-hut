@@ -35,6 +35,7 @@ A nannou crate is used as the graphics framework.
 - [ ] Tidy up physics code - `Space` trait & its `2D` and `3D` implementations could be a single source of truth for '
   laws of physics, e.g. moving general purpose gravity calcs out of barnes_hut.rs.
 - [ ] Grow tree bounds dynamically
+- [ ] Move away from nannou? E.g. to
 
 #### Testing
 
