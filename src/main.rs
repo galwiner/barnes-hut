@@ -27,6 +27,7 @@ fn main() {
         .filter_level(Warn)
         .filter_module(module_path!(), Debug)
         .filter_module("wgpu_hal::dx12::instance", Error)
+        .format_timestamp(None)
         .parse_default_env()
         .init();
     nannou::app(application::init_app)
