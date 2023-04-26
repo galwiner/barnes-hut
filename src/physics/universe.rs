@@ -86,7 +86,7 @@ impl simulation::Model for Universe {
         }
         #[cfg(not(feature = "parallel"))]
         {
-            self.particles.iter().for_each(update_particle);
+            self.particles.iter_mut().for_each(update_particle);
         }
     }
 
