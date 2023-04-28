@@ -1,7 +1,7 @@
 use nannou::prelude::*;
 
 use crate::drawing::Drawable;
-use crate::physics::barnes_hut::GravityField2D;
+use crate::physics::barnes_hut::{GravityField, GravityField2D};
 use crate::physics::point_mass::PointMass;
 use crate::simulation;
 use crate::view_state::ViewState;
@@ -64,6 +64,18 @@ impl Universe {
     pub(super) fn insert(&mut self, particle: Particle) {
         self.particles.push(particle);
     }
+
+    fn gravity_field(&self) -> GravityField2D {
+        let bounds: Rect = self
+            .particles
+            .iter()
+            .fold(Rect::from_w_h(0.0, 0.0), |bounds, particle| {
+                bounds.stretch_to(particle.position)
+            });
+        let size = bounds.w().max(bounds.h());
+
+        GravityField2D::new(size)
+    }
 }
 
 impl Drawable for Universe {
@@ -77,22 +89,15 @@ impl Drawable for Universe {
             }
         }
         if view_state.draw_quad_tree {
-            // TODO?
+            let gravity_field = self.gravity_field();
+            gravity_field.
         }
     }
 }
 
 impl simulation::Model for Universe {
     fn step(&mut self, dt: f32) {
-        let bounds: Rect = self
-            .particles
-            .iter()
-            .fold(Rect::from_w_h(0.0, 0.0), |bounds, particle| {
-                bounds.stretch_to(particle.position)
-            });
-        let size = bounds.w().max(bounds.h());
-
-        let mut gravity_field = GravityField2D::new(size);
+        let mut gravity_field = self.gravity_field();
 
         for particle in &self.particles {
             gravity_field += PointMass::new(particle.position, particle.mass);
