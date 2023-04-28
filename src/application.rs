@@ -110,6 +110,11 @@ fn event_handler(app: &App, model: &mut AppModel, event: WindowEvent) {
         KeyPressed(Key::Down) => view.pan.y += KEYBOARD_PAN_DISTANCE,
         KeyPressed(Key::Left) => view.pan.x += KEYBOARD_PAN_DISTANCE,
         KeyPressed(Key::Right) => view.pan.x += -KEYBOARD_PAN_DISTANCE,
+
+        KeyPressed(Key::Equals) => universe.black_hole_mass *= 2.0,
+        KeyPressed(Key::Minus) =>  universe.black_hole_mass *= 0.5,
+        KeyPressed(Key::Key0) =>  universe.black_hole_mass = 0.0,
+        KeyPressed(Key::Key9) =>  universe.black_hole_mass = 1e3,
         _ => {}
     }
 }

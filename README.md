@@ -57,10 +57,10 @@ or the `Run wasm in chrome` CLion / IntelliJ run configuration.
 - [ ] Easy way to tune parameters at runtime, e.g. https://github.com/tversteeg/const-tweaker
     - [ ] Extract a `Config` struct - possibly separating physics and app / graphics config
 - [X] wasm build
-    - [ ] Fix: Logging in wasm - want to control log level per package as with env_logger
+    - [X] Fix: Logging in wasm - want to control log level per package as with env_logger
     - [ ] Fix: mouse wheel zoom
-    - [ ] Fill browser frame
-    - [ ] Build & deploy somewhere with GitHub actions
+        - [ ] Fill browser frame
+        - [ ] Build & deploy somewhere with GitHub actions
 - [X] Pan with middle mouse button
     - [ ] Touch controls?
 - [ ] Some interface for adding / removing bodies
