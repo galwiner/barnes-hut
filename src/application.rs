@@ -1,8 +1,8 @@
 use async_std::task;
-use MouseScrollDelta::*;
 use nannou::prelude::*;
 use nannou::wgpu::{Backends, DeviceDescriptor, Limits};
 use task::block_on;
+use MouseScrollDelta::*;
 
 use crate::drawing::{alpha, draw_rect, Drawable};
 use crate::physics::Universe;
@@ -23,14 +23,14 @@ pub fn run_sync() {
 }
 
 pub async fn run_async() {
-    app::Builder::new_async(|app| Box::new(init_app(app)))
+    app::Builder::new_async(|app| Box::new(init_nannou_app(app)))
         .update(update)
         .backends(Backends::PRIMARY | Backends::GL)
         .run_async()
         .await;
 }
 
-async fn init_app(app: &App) -> AppModel {
+async fn init_nannou_app(app: &App) -> AppModel {
     create_window(app).await;
     AppModel {
         simulation: Simulation::new(Universe::new(INITIAL_PARTICLE_COUNT)),
@@ -64,7 +64,7 @@ fn view(app: &App, app_model: &AppModel, frame: Frame) {
     let app_draw = app.draw();
     app_draw.background().color(BLACK);
     let sim_draw = app_draw.transform(app_model.view_state.universe_to_app_transform());
-    let sim_bounds = app_model.view_state.to_universe_rect(frame.rect());
+    let sim_bounds = app_model.view_state.as_universe_rect(frame.rect());
 
     let universe = &app_model.simulation.model;
     universe.draw(&sim_draw, sim_bounds, &app_model.view_state);
@@ -91,7 +91,7 @@ fn event_handler(app: &App, model: &mut AppModel, event: WindowEvent) {
         }
         MouseReleased(MouseButton::Middle) => view.end_mouse_pan(),
         MousePressed(MouseButton::Left) => {
-            let universe_position = view.to_universe_point(app.mouse.position());
+            let universe_position = view.as_universe_point(app.mouse.position());
             universe.add_particle_at(universe_position);
         }
         MouseWheel(LineDelta(x, y), _phase) => {

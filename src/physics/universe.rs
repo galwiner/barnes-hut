@@ -79,12 +79,12 @@ impl simulation::Model for Universe {
             particle.update(dt, net_g);
         };
 
-        #[cfg(feature = "parallel")]
+        #[cfg(feature = "rayon")]
         {
             use rayon::prelude::*;
             self.particles.par_iter_mut().for_each(update_particle);
         }
-        #[cfg(not(feature = "parallel"))]
+        #[cfg(not(feature = "rayon"))]
         {
             self.particles.iter_mut().for_each(update_particle);
         }
