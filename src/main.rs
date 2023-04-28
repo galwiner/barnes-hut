@@ -1,35 +1,17 @@
-#[macro_use]
-extern crate derivative;
 extern crate env_logger;
-#[macro_use]
-extern crate log;
-extern crate nannou;
-#[cfg(feature = "parallel")]
-extern crate rayon;
-#[cfg(test)]
-#[allow(unused_imports)]
-#[macro_use]
-extern crate static_assertions;
-
-use log::LevelFilter::{Debug, Error, Warn};
-
-#[macro_use]
-mod macros;
-mod application;
-mod created;
-mod drawing;
-mod physics;
-mod simulation;
-mod view_state;
 
 fn main() {
+    configure_logging();
+    barnes_hut::application::run_sync()
+}
+
+fn configure_logging() {
+    use log::LevelFilter::*;
     env_logger::Builder::new()
         .filter_level(Warn)
-        .filter_module(module_path!(), Debug)
+        .filter_module(barnes_hut::MODULE_PATH, Debug)
         .filter_module("wgpu_hal::dx12::instance", Error)
+        .format_timestamp(None)
         .parse_default_env()
         .init();
-    nannou::app(application::init_app)
-        .update(application::update)
-        .run()
 }

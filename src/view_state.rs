@@ -77,15 +77,15 @@ impl ViewState {
 
     /// in universe coordinates
     pub fn inspector_bounds(&self) -> Option<Rect> {
-        self.inspector.map(|r| self.to_universe_rect(r))
+        self.inspector.map(|r| self.as_universe_rect(r))
     }
 
-    pub fn to_universe_point(&self, point: Point2) -> Point2 {
+    pub fn as_universe_point(&self, point: Point2) -> Point2 {
         (point - self.pan) / self.scale
     }
 
-    pub fn to_universe_rect(&self, rect: Rect) -> Rect {
-        Rect::from_xy_wh(self.to_universe_point(rect.xy()), rect.wh() / self.scale)
+    pub fn as_universe_rect(&self, rect: Rect) -> Rect {
+        Rect::from_xy_wh(self.as_universe_point(rect.xy()), rect.wh() / self.scale)
     }
 
     pub fn cycle_drawn_stuff(&mut self) {
