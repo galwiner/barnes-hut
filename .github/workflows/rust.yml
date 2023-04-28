@@ -16,15 +16,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - run: rustup toolchain install stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: jetli/wasm-pack-action@v0.4.0
 
       - name: Build
         run: cargo build --verbose
 
       - name: Run tests
         run: cargo test --verbose
-
-        # Install wasm-pack:
-      - uses: jetli/wasm-pack-action@v0.4.0
 
       - name: Build wasm
         run: wasm-pack build --target web
