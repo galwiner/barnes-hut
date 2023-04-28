@@ -8,14 +8,18 @@ use crate::view_state::ViewState;
 
 use super::particle::Particle;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Derivative)]
+#[derivative(Default)]
 pub struct Universe {
     particles: Vec<Particle>,
+    #[derivative(Default(value = "1e3"))]
+    pub black_hole_mass: f32
 }
 
 impl Universe {
     pub const G: f32 = 1e2;
     pub const THETA: f32 = 0.7;
+
 
     pub fn new(num_particles: usize) -> Self {
         let mut new = Self::default();
@@ -73,7 +77,9 @@ impl simulation::Model for Universe {
         for particle in &self.particles {
             gravity_field += PointMass::new(particle.position, particle.mass);
         }
-        gravity_field += PointMass::new(Point2::new(0.0, 0.0), 1e3);
+
+        gravity_field += PointMass::new(Point2::new(0.0, 0.0), self.black_hole_mass);
+
         let update_particle = |particle: &mut Particle| {
             let net_g = gravity_field.estimate_net_g(particle.position, Self::THETA, Self::G);
             particle.update(dt, net_g);
