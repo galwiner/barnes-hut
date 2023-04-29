@@ -1,5 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Run wasm in chrome" type="JavascriptDebugType" uri="http://localhost:63342/barnes-hut/index.html" useBuiltInWebServerPort="true">
-    <method v="2" />
-  </configuration>
-</component>
