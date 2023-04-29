@@ -17,6 +17,26 @@ pub struct Universe {
 }
 
 impl Universe {
+    pub(crate) fn set_black_hole_mass(&mut self, fac:f32) {
+        self.black_hole_mass = fac;
+        info!(
+            "Blackhole mass is now: {}",
+            self.black_hole_mass
+        );
+    }
+}
+
+impl Universe {
+    pub(crate) fn multiply_black_hole_mass(&mut self, fac: f32) {
+         self.black_hole_mass *= fac;
+        info!(
+            "Blackhole mass is now: {}",
+            self.black_hole_mass
+        );
+    }
+}
+
+impl Universe {
     pub const G: f32 = 1e2;
     pub const THETA: f32 = 0.7;
 
