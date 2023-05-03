@@ -1,8 +1,9 @@
 use nannou::prelude::*;
 
 use crate::drawing::Drawable;
-use crate::physics::barnes_hut::{GravityField, GravityField2D};
+use crate::physics::barnes_hut::{GravityField, GravityField2D, MassAggregate};
 use crate::physics::point_mass::PointMass;
+use crate::physics::space_2d::Space2D;
 use crate::simulation;
 use crate::view_state::ViewState;
 
@@ -12,6 +13,7 @@ use super::particle::Particle;
 #[derivative(Default)]
 pub struct Universe {
     particles: Vec<Particle>,
+    bounding_boxes : Vec<Rect>,
     #[derivative(Default(value = "1e3"))]
     pub black_hole_mass: f32
 }
@@ -66,12 +68,7 @@ impl Universe {
     }
 
     fn gravity_field(&self) -> GravityField2D {
-        let bounds: Rect = self
-            .particles
-            .iter()
-            .fold(Rect::from_w_h(0.0, 0.0), |bounds, particle| {
-                bounds.stretch_to(particle.position)
-            });
+        let bounds = self.get_bounding_box();
         let size = bounds.w().max(bounds.h());
 
         GravityField2D::new(size)
@@ -89,8 +86,14 @@ impl Drawable for Universe {
             }
         }
         if view_state.draw_quad_tree {
-            let gravity_field = self.gravity_field();
-            gravity_field.
+            self.bounding_boxes.iter().for_each(|bb| {
+                draw.rect()
+                    .xy(bb.xy())
+                    .wh(bb.wh())
+                    .stroke_weight(1.0)
+                    .stroke_color(RED)
+                    .color(BLACK);
+            });
         }
     }
 }
@@ -105,6 +108,7 @@ impl simulation::Model for Universe {
 
         gravity_field += PointMass::new(Point2::new(0.0, 0.0), self.black_hole_mass);
 
+        self.bounding_boxes = gravity_field.get_bounding_boxes();
         let update_particle = |particle: &mut Particle| {
             let net_g = gravity_field.estimate_net_g(particle.position, Self::THETA, Self::G);
             particle.update(dt, net_g);

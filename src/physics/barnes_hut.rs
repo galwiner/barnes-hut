@@ -1,7 +1,9 @@
 use std::ops::AddAssign;
+use nannou::geom::{Rect, vec2};
+
 
 use crate::physics::space_2d::Space2D;
-
+use crate::view_state::ViewState;
 use super::point_mass::PointMass;
 use super::space::DivisibleSpace;
 
@@ -28,6 +30,27 @@ where
     total: PointMass<S>,
 
     subdivisions: [Child<S, NUM_SUBDIVISIONS>; NUM_SUBDIVISIONS],
+}
+
+impl<S, const NUM_SUBDIVISIONS: usize>  MassAggregate<S, NUM_SUBDIVISIONS>
+where
+    S: DivisibleSpace<NUM_SUBDIVISIONS>,
+{
+    pub fn new(pivot: S::Vector, width: S::Scalar) -> MassAggregate<S, NUM_SUBDIVISIONS> {
+        MassAggregate {
+            total: PointMass::default(),
+            pivot,
+            width,
+            subdivisions: S::subdivisions_array_default(),
+        }
+    }
+}
+
+impl MassAggregate<Space2D, 4> {
+    pub(crate) fn get_bounding_rect(&self) -> Rect {
+
+        Rect::from_xy_wh(self.pivot, vec2(self.pivot.x, self.pivot.y))
+    }
 }
 
 impl<S, const NUM_SUBDIVISIONS: usize> Default for MassAggregate<S, NUM_SUBDIVISIONS>
@@ -123,6 +146,26 @@ where
     width: S::Scalar,
 
     root: MassAggregate<S, NUM_SUBDIVISIONS>,
+}
+
+impl GravityField2D{
+    pub(crate) fn get_bounding_boxes(&self) -> Vec<Rect> {
+        let mut mass_aggregates = vec![self.root.clone()];
+        let mut rects = Vec::new();
+        while let Some(mass_aggreate) = mass_aggregates.pop(){
+            rects.push(mass_aggreate.get_bounding_rect());
+            for child in mass_aggreate.subdivisions{
+                match child{
+                    Child::Empty => {}
+                    Child::Body(_) => {}
+                    Child::Aggregate(aggregate) => {
+                        mass_aggregates.push(*aggregate);
+                    }
+                }
+            }
+        }
+        rects
+    }
 }
 
 impl<S, const NUM_SUBDIVISIONS: usize> GravityField<S, NUM_SUBDIVISIONS>
