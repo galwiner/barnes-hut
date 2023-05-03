@@ -107,6 +107,7 @@ fn event_handler(app: &App, model: &mut AppModel, event: WindowEvent) {
         KeyPressed(Key::Space) => view.cycle_drawn_stuff(),
         KeyPressed(Key::Back /* backspace */) => universe.clear(),
         KeyPressed(Key::P) => universe.add_random_particles(200),
+        KeyPressed(Key::U) => universe.add_uniform_random(200),
         KeyPressed(Key::R) => {
             view.reset_zoom();
             view.reset_pan();

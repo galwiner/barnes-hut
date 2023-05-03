@@ -2,7 +2,7 @@ use std::vec::IntoIter;
 use nannou::color::Gradient;
 use nannou::prelude::*;
 use nannou::rand::{thread_rng, Rng};
-use rand_distr::Normal;
+use rand_distr::{Normal, Uniform};
 
 use ParticleType::*;
 
@@ -43,6 +43,25 @@ impl Particle {
             tag: Placed,
         }
     }
+    pub fn new_uniform() -> Self {
+
+        let uniform_dist = Uniform::new(-600.0, 600.0);
+        let uniform = || thread_rng().gen::<f32>();
+        let size = 0.5 + (uniform() * 3.0);
+        let normal_uniform_pt2 = || {
+            Point2::new(
+                thread_rng().sample(uniform_dist),
+                thread_rng().sample(uniform_dist),
+            )
+        };
+        Self {
+            position: normal_uniform_pt2(),
+            velocity : vec2(0.0,0.0),
+            mass: size*size*size,
+            radius: size,
+            tag: Default,
+        }
+    }
     pub fn new_random() -> Self {
         let normal_dist = Normal::new(0.0, 1.0).unwrap();
         let uniform = || thread_rng().gen::<f32>();
@@ -71,13 +90,13 @@ impl Particle {
         self.velocity += acceleration * dt;
         self.position += self.velocity * dt;
     }
-    pub fn draw(&self, draw: &Draw, view_state: &ViewState, gradient:&Gradient<LinSrgb>, max_v: f32) {
+    pub fn draw(&self, draw: &Draw, view_state: &ViewState, gradient:&Gradient<LinSrgb>, normalization_v: f32) {
         // println!("draw particle: {:?}", self.velocity.length()*/max_v);
 
         let color = match (self.tag, view_state.is_inspecting(self.position)) {
             (Placed, _) => alpha(TURQUOISE, 0.5),
             (_, true) => alpha(YELLOW, 0.2),
-            _ => alpha(gradient.get(self.velocity.length()*5.0/max_v),1.0),
+            _ => alpha(gradient.get(self.velocity.length()*5.0/normalization_v),1.0),
         };
         let diameter = self.radius * 2.0;
         if diameter > view_state.min_universe_feature_size() {

@@ -20,6 +20,14 @@ pub struct Universe {
 }
 
 impl Universe {
+    pub(crate) fn add_uniform_random(&mut self, num_particles: i32) {
+        for _ in 0..num_particles {
+            self.insert(Particle::new_uniform());
+        }
+    }
+}
+
+impl Universe {
     pub(crate) fn add_moving_particle_at(&mut self, position: Point2) {
         self.insert(Particle::new_moving(position));
         println!("Added moving particle at: {:?}", position);
@@ -95,13 +103,12 @@ impl Universe {
 impl Drawable for Universe {
     fn draw(&self, draw: &Draw, bounds: Rect, view_state: &ViewState) {
         if view_state.draw_particles {
-            let max_v = get_max_velocity(&self.particles);
+            let normalization_v = get_stdev_velocity(&self.particles);
             let gradient = get_gradient();
             for particle in &self.particles {
                 if bounds.contains(particle.position) {
-                    particle.draw(draw, view_state,&gradient,max_v);
+                    particle.draw(draw, view_state,&gradient,normalization_v);
                 }
-                particle.draw(draw, view_state,&gradient,max_v);
             }
         }
         if view_state.draw_quad_tree {
@@ -129,6 +136,24 @@ fn get_max_velocity(particles: &Vec<Particle>) -> f32 {
         .iter()
         .map(|p| p.velocity.length())
         .fold(0.0, |max, v| max.max(v as f64)) as f32
+}
+
+fn get_mean_velocity(particles: &Vec<Particle>) -> f32 {
+    particles
+        .iter()
+        .map(|p| p.velocity.length())
+        .fold(0.0, |sum, v| sum + v as f64) as f32
+        / particles.len() as f32
+}
+
+fn get_stdev_velocity(particles: &Vec<Particle>) -> f32 {
+    let mean = get_mean_velocity(particles);
+    let variance = particles
+        .iter()
+        .map(|p| p.velocity.length())
+        .fold(0.0, |sum, v| sum + (v as f32 - mean).powi(2))
+        / particles.len() as f32;
+    variance.sqrt()
 }
 
 impl simulation::Model for Universe {
