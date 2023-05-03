@@ -51,7 +51,7 @@ where
 impl MassAggregate<Space2D, 4> {
     pub(crate) fn get_bounding_rect(&self) -> Rect {
 
-        Rect::from_xy_wh(self.pivot, vec2(self.width, self.width))
+        Rect::from_xy_wh(self.pivot, vec2(self.width*0.5, self.width*0.5))
     }
 }
 
