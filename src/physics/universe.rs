@@ -20,6 +20,13 @@ pub struct Universe {
 }
 
 impl Universe {
+    pub(crate) fn add_moving_particle_at(&mut self, position: Point2) {
+        self.insert(Particle::new_moving(position));
+        println!("Added moving particle at: {:?}", position);
+    }
+}
+
+impl Universe {
     pub(crate) fn set_black_hole_mass(&mut self, fac:f32) {
         self.black_hole_mass = fac;
         info!(

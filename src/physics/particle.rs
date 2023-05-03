@@ -28,13 +28,21 @@ impl Particle {
     pub fn new(position: Point2) -> Self {
         Self {
             position,
-            velocity: vec2(0.0, 0.0),
+            velocity : vec2(0.0,0.0),
             mass: 1000.0,
             radius: 5.0,
             tag: Placed,
         }
     }
-
+    pub fn new_moving(position: Point2) -> Self {
+        Self {
+            position,
+            velocity : vec2(100.0,0.0),
+            mass: 1000.0,
+            radius: 5.0,
+            tag: Placed,
+        }
+    }
     pub fn new_random() -> Self {
         let normal_dist = Normal::new(0.0, 1.0).unwrap();
         let uniform = || thread_rng().gen::<f32>();

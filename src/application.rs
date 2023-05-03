@@ -90,13 +90,23 @@ fn event_handler(app: &App, model: &mut AppModel, event: WindowEvent) {
             view.inspect_at(position);
         }
         MouseReleased(MouseButton::Middle) => view.end_mouse_pan(),
-        MousePressed(MouseButton::Left) => {
-            let universe_position = view.as_universe_point(app.mouse.position());
-            universe.add_particle_at(universe_position);
-        }
+
+        MousePressed(MouseButton::Left) =>
+            match event {
+                KeyPressed(Key::LShift) => {
+                    let universe_position = view.as_universe_point(app.mouse.position());
+                    universe.add_particle_at(universe_position);
+                }
+                _ => {
+                    let universe_position = view.as_universe_point(app.mouse.position());
+                    universe.add_moving_particle_at(universe_position);
+                }
+            }
+
         MouseWheel(LineDelta(x, y), _phase) => {
             view.zoom_at(app.mouse.position(), ZOOM_FACTOR.powf(x + y))
         }
+
         // key events:
         KeyPressed(Key::Space) => view.cycle_drawn_stuff(),
         KeyPressed(Key::Back /* backspace */) => universe.clear(),
