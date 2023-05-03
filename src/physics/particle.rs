@@ -1,3 +1,5 @@
+use std::vec::IntoIter;
+use nannou::color::Gradient;
 use nannou::prelude::*;
 use nannou::rand::{thread_rng, Rng};
 use rand_distr::Normal;
@@ -18,7 +20,7 @@ pub(super) struct Particle {
     tag: ParticleType,
     pub mass: f32,
     pub position: Point2,
-    velocity: Vec2,
+    pub velocity: Vec2,
     radius: f32,
 }
 
@@ -61,12 +63,13 @@ impl Particle {
         self.velocity += acceleration * dt;
         self.position += self.velocity * dt;
     }
+    pub fn draw(&self, draw: &Draw, view_state: &ViewState, gradient:&Gradient<LinSrgb>, max_v: f32) {
+        // println!("draw particle: {:?}", self.velocity.length()*/max_v);
 
-    pub fn draw(&self, draw: &Draw, view_state: &ViewState) {
         let color = match (self.tag, view_state.is_inspecting(self.position)) {
             (Placed, _) => alpha(TURQUOISE, 0.5),
             (_, true) => alpha(YELLOW, 0.2),
-            _ => alpha(GREEN, 0.2),
+            _ => alpha(gradient.get(self.velocity.length()*5.0/max_v),1.0),
         };
         let diameter = self.radius * 2.0;
         if diameter > view_state.min_universe_feature_size() {

@@ -1,3 +1,4 @@
+use nannou::color::Gradient;
 use nannou::prelude::*;
 
 use crate::drawing::Drawable;
@@ -87,11 +88,13 @@ impl Universe {
 impl Drawable for Universe {
     fn draw(&self, draw: &Draw, bounds: Rect, view_state: &ViewState) {
         if view_state.draw_particles {
+            let max_v = get_max_velocity(&self.particles);
+            let gradient = get_gradient();
             for particle in &self.particles {
                 if bounds.contains(particle.position) {
-                    particle.draw(draw, view_state);
+                    particle.draw(draw, view_state,&gradient,max_v);
                 }
-                particle.draw(draw, view_state);
+                particle.draw(draw, view_state,&gradient,max_v);
             }
         }
         if view_state.draw_quad_tree {
@@ -105,6 +108,20 @@ impl Drawable for Universe {
             });
         }
     }
+}
+
+fn get_gradient() -> Gradient<LinSrgb> {
+    Gradient::new(vec![
+            LinSrgb::new(0.0, 0.0, 1.0),
+            LinSrgb::new(1.0, 0.0, 0.0)
+        ])
+}
+
+fn get_max_velocity(particles: &Vec<Particle>) -> f32 {
+    particles
+        .iter()
+        .map(|p| p.velocity.length())
+        .fold(0.0, |max, v| max.max(v as f64)) as f32
 }
 
 impl simulation::Model for Universe {
