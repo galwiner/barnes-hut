@@ -28,6 +28,8 @@ where
 {
     /// The mass and center of mass of all points at or under this node.
     total: PointMass<S>,
+    pivot: S::Vector,
+    width: S::Scalar,
 
     subdivisions: [Child<S, NUM_SUBDIVISIONS>; NUM_SUBDIVISIONS],
 }
@@ -53,25 +55,25 @@ impl MassAggregate<Space2D, 4> {
     }
 }
 
-impl<S, const NUM_SUBDIVISIONS: usize> Default for MassAggregate<S, NUM_SUBDIVISIONS>
-where
-    S: DivisibleSpace<NUM_SUBDIVISIONS>,
-{
-    fn default() -> Self {
-        Self {
-            total: PointMass::default(),
-            subdivisions: S::subdivisions_array_default(),
-        }
-    }
-}
+// impl<S, const NUM_SUBDIVISIONS: usize> Default for MassAggregate<S, NUM_SUBDIVISIONS>
+// where
+//     S: DivisibleSpace<NUM_SUBDIVISIONS>,
+// {
+//     fn default() -> Self {
+//         Self {
+//             total: PointMass::default(),
+//             subdivisions: S::subdivisions_array_default(),
+//         }
+//     }
+// }
 
 impl<S, const NUM_SUBDIVISIONS: usize> MassAggregate<S, NUM_SUBDIVISIONS>
 where
     S: DivisibleSpace<NUM_SUBDIVISIONS>,
 {
-    fn insert(&mut self, pivot: S::Vector, width: S::Scalar, body: PointMass<S>) {
+    fn insert(&mut self, body: PointMass<S>) {
         self.total += body;
-        let subdivision_index = S::subdivision_index(pivot, body.position);
+        let subdivision_index = S::subdivision_index(self.pivot, body.position);
         let child = &mut self.subdivisions[subdivision_index];
 
         match child {
@@ -79,19 +81,18 @@ where
                 *child = Child::Body(body);
             }
             Child::Body(existing_body) => {
-                let mut aggregate = MassAggregate::default();
-                let (width, pivot) = S::subtree_width_pivot(subdivision_index, width, pivot);
+                let (width, pivot) = S::subtree_width_pivot(subdivision_index, self.width, self.pivot);
                 if width < S::EPSILON {
                     *existing_body += body;
                     return;
                 }
-                aggregate.insert(pivot, width, *existing_body);
-                aggregate.insert(pivot, width, body);
+                let mut aggregate = MassAggregate::new(pivot, width);
+                aggregate.insert( *existing_body);
+                aggregate.insert( body);
                 *child = Child::Aggregate(Box::new(aggregate));
             }
             Child::Aggregate(aggregate) => {
-                let (width, pivot) = S::subtree_width_pivot(subdivision_index, width, pivot);
-                aggregate.insert(pivot, width, body);
+                aggregate.insert( body);
             }
         }
     }
@@ -176,7 +177,7 @@ where
         Self {
             origin: S::VECTOR_ZERO,
             width: size,
-            root: Default::default(),
+            root: MassAggregate::new(S::VECTOR_ZERO, size),
         }
     }
 
@@ -189,7 +190,7 @@ where
             warn!("PointMass out of bounds: {:?}", rhs);
             return;
         }
-        self.root.insert(self.origin, self.width, rhs);
+        self.root.insert( rhs);
     }
 
     pub fn estimate_net_g(

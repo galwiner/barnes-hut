@@ -67,6 +67,15 @@ impl Universe {
         self.particles.push(particle);
     }
 
+    fn get_bounding_box(&self) -> Rect {
+        self
+            .particles
+            .iter()
+            .fold(Rect::from_w_h(0.0, 0.0), |bounds, particle| {
+                bounds.stretch_to(particle.position)
+            })
+    }
+
     fn gravity_field(&self) -> GravityField2D {
         let bounds = self.get_bounding_box();
         let size = bounds.w().max(bounds.h());
