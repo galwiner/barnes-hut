@@ -92,7 +92,7 @@ impl Drawable for Universe {
                     .wh(bb.wh())
                     .stroke_weight(1.0)
                     .stroke_color(RED)
-                    .color(BLACK);
+                    .no_fill();
             });
         }
     }
