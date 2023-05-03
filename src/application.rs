@@ -90,18 +90,14 @@ fn event_handler(app: &App, model: &mut AppModel, event: WindowEvent) {
             view.inspect_at(position);
         }
         MouseReleased(MouseButton::Middle) => view.end_mouse_pan(),
-
-        MousePressed(MouseButton::Left) =>
-            match event {
-                KeyPressed(Key::LShift) => {
-                    let universe_position = view.as_universe_point(app.mouse.position());
-                    universe.add_particle_at(universe_position);
-                }
-                _ => {
-                    let universe_position = view.as_universe_point(app.mouse.position());
-                    universe.add_moving_particle_at(universe_position);
-                }
-            }
+        MousePressed(MouseButton::Left) => {
+            let universe_position = view.as_universe_point(app.mouse.position());
+            universe.add_particle_at(universe_position);
+        }
+        MousePressed(MouseButton::Right) => {
+            let universe_position = view.as_universe_point(app.mouse.position());
+            universe.add_moving_particle_at(universe_position);
+        }
 
         MouseWheel(LineDelta(x, y), _phase) => {
             view.zoom_at(app.mouse.position(), ZOOM_FACTOR.powf(x + y))
@@ -120,11 +116,10 @@ fn event_handler(app: &App, model: &mut AppModel, event: WindowEvent) {
         KeyPressed(Key::Down) => view.pan.y += KEYBOARD_PAN_DISTANCE,
         KeyPressed(Key::Left) => view.pan.x += KEYBOARD_PAN_DISTANCE,
         KeyPressed(Key::Right) => view.pan.x += -KEYBOARD_PAN_DISTANCE,
-
         KeyPressed(Key::Equals) => universe.multiply_black_hole_mass(2.0),
-        KeyPressed(Key::Minus) =>  universe.multiply_black_hole_mass(0.5),
-        KeyPressed(Key::Key0) =>  universe.multiply_black_hole_mass(0.0),
-        KeyPressed(Key::Key9) =>  universe.set_black_hole_mass(1e3),
+        KeyPressed(Key::Minus) => universe.multiply_black_hole_mass(0.5),
+        KeyPressed(Key::Key0) => universe.multiply_black_hole_mass(0.0),
+        KeyPressed(Key::Key9) => universe.set_black_hole_mass(1e3),
         _ => {}
     }
 }
