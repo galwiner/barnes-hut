@@ -97,11 +97,10 @@ impl Universe {
 impl Drawable for Universe {
     fn draw(&self, draw: &Draw, bounds: Rect, view_state: &ViewState) {
         if view_state.draw_particles {
-            let normalization_v = get_stdev_velocity(&self.particles);
             let gradient = get_gradient();
             for particle in &self.particles {
                 if bounds.contains(particle.position) {
-                    particle.draw(draw, view_state, &gradient, normalization_v);
+                    particle.draw(draw, view_state, &gradient);
                 }
             }
         }
@@ -111,43 +110,15 @@ impl Drawable for Universe {
                     .xy(bb.xy())
                     .wh(bb.wh())
                     .stroke_weight(1.0 / view_state.scale)
-                    .stroke_color(alpha(RED, 0.2))
+                    .stroke_color(alpha(THISTLE, 0.2))
                     .no_fill();
             });
         }
     }
 }
 
-fn get_gradient() -> Gradient<LinSrgb> {
-    Gradient::new(vec![
-        LinSrgb::new(0.0, 0.0, 1.0),
-        LinSrgb::new(1.0, 0.0, 0.0),
-    ])
-}
-
-fn get_max_velocity(particles: &Vec<Particle>) -> f32 {
-    particles
-        .iter()
-        .map(|p| p.velocity.length())
-        .fold(0.0, |max, v| max.max(v as f64)) as f32
-}
-
-fn get_mean_velocity(particles: &Vec<Particle>) -> f32 {
-    particles
-        .iter()
-        .map(|p| p.velocity.length())
-        .fold(0.0, |sum, v| sum + v as f64) as f32
-        / particles.len() as f32
-}
-
-fn get_stdev_velocity(particles: &Vec<Particle>) -> f32 {
-    let mean = get_mean_velocity(particles);
-    let variance = particles
-        .iter()
-        .map(|p| p.velocity.length())
-        .fold(0.0, |sum, v| sum + (v as f32 - mean).powi(2))
-        / particles.len() as f32;
-    variance.sqrt()
+fn get_gradient() -> Gradient<LinSrgba> {
+    Gradient::new(vec![alpha(BLUE, 0.5), alpha(RED, 0.5)])
 }
 
 impl simulation::Model for Universe {
