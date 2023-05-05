@@ -3,6 +3,7 @@ use nannou::prelude::*;
 use nannou::wgpu::{Backends, DeviceDescriptor, Limits};
 use task::block_on;
 use MouseScrollDelta::*;
+use nannou_egui::{Egui};
 
 use crate::drawing::{alpha, draw_rect, Drawable};
 use crate::physics::Universe;
@@ -12,6 +13,7 @@ use crate::view_state::ViewState;
 struct AppModel {
     simulation: Simulation<Universe>,
     view_state: ViewState,
+    egui: Egui,
 }
 
 const INITIAL_PARTICLE_COUNT: usize = 1000;
@@ -31,17 +33,23 @@ pub async fn run_async() {
 }
 
 async fn init_nannou_app(app: &App) -> AppModel {
-    create_window(app).await;
+    let id = create_window(app).await;
+    let window = app.window(id).unwrap();
+    //this is identical to https://github.com/nannou-org/nannou/blob/master/examples/ui/egui/circle_packing.rs
+    //don't get why there's a type error
+    let egui = Egui::from_window(&window);
+
     AppModel {
+        egui,
         simulation: Simulation::new(Universe::new(INITIAL_PARTICLE_COUNT)),
         view_state: Default::default(),
     }
 }
 
-async fn create_window(app: &App) {
+async fn create_window(app: &App) -> WindowId {
     app.new_window()
         .title("Barnes-Hut Simulation")
-        //.size(1200, 800)
+        // .size(1200, 800)
         .view(view)
         .event(event_handler)
         .device_descriptor(DeviceDescriptor {
@@ -53,7 +61,8 @@ async fn create_window(app: &App) {
         })
         .build_async()
         .await
-        .unwrap();
+        .unwrap()
+
 }
 
 fn update(_app: &App, model: &mut AppModel, _: Update) {
