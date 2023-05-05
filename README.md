@@ -52,7 +52,7 @@ or the `Run wasm in chrome` CLion / IntelliJ run configuration.
 
 #### UI / usability
 
-- [ ] Draw tree bounding boxes again
+- [X] Draw tree bounding boxes again
     - [ ] Better: highlight bodies and bounding boxes contributing to g calculation at the mouse location
 - [ ] Easy way to tune parameters at runtime, e.g. https://github.com/tversteeg/const-tweaker
     - [ ] Extract a `Config` struct - possibly separating physics and app / graphics config
