@@ -1,9 +1,9 @@
 use std::ops::AddAssign;
-use nannou::geom::{Rect, vec2};
 
+use nannou::geom::{vec2, Rect};
 
 use crate::physics::space_2d::Space2D;
-use crate::view_state::ViewState;
+
 use super::point_mass::PointMass;
 use super::space::DivisibleSpace;
 
@@ -34,7 +34,7 @@ where
     subdivisions: [Child<S, NUM_SUBDIVISIONS>; NUM_SUBDIVISIONS],
 }
 
-impl<S, const NUM_SUBDIVISIONS: usize>  MassAggregate<S, NUM_SUBDIVISIONS>
+impl<S, const NUM_SUBDIVISIONS: usize> MassAggregate<S, NUM_SUBDIVISIONS>
 where
     S: DivisibleSpace<NUM_SUBDIVISIONS>,
 {
@@ -50,8 +50,7 @@ where
 
 impl MassAggregate<Space2D, 4> {
     pub(crate) fn get_bounding_rect(&self) -> Rect {
-
-        Rect::from_xy_wh(self.pivot, vec2(self.width*0.5, self.width*0.5))
+        Rect::from_xy_wh(self.pivot, vec2(self.width, self.width))
     }
 }
 
@@ -81,18 +80,19 @@ where
                 *child = Child::Body(body);
             }
             Child::Body(existing_body) => {
-                let (width, pivot) = S::subtree_width_pivot(subdivision_index, self.width, self.pivot);
+                let (width, pivot) =
+                    S::subtree_width_pivot(subdivision_index, self.width, self.pivot);
                 if width < S::EPSILON {
                     *existing_body += body;
                     return;
                 }
                 let mut aggregate = MassAggregate::new(pivot, width);
-                aggregate.insert( *existing_body);
-                aggregate.insert( body);
+                aggregate.insert(*existing_body);
+                aggregate.insert(body);
                 *child = Child::Aggregate(Box::new(aggregate));
             }
             Child::Aggregate(aggregate) => {
-                aggregate.insert( body);
+                aggregate.insert(body);
             }
         }
     }
@@ -149,14 +149,14 @@ where
     root: MassAggregate<S, NUM_SUBDIVISIONS>,
 }
 
-impl GravityField2D{
+impl GravityField2D {
     pub(crate) fn get_bounding_boxes(&self) -> Vec<Rect> {
         let mut mass_aggregates = vec![self.root.clone()];
         let mut rects = Vec::new();
-        while let Some(mass_aggreate) = mass_aggregates.pop(){
+        while let Some(mass_aggreate) = mass_aggregates.pop() {
             rects.push(mass_aggreate.get_bounding_rect());
-            for child in mass_aggreate.subdivisions{
-                match child{
+            for child in mass_aggreate.subdivisions {
+                match child {
                     Child::Empty => {}
                     Child::Body(_) => {}
                     Child::Aggregate(aggregate) => {
@@ -190,7 +190,7 @@ where
             warn!("PointMass out of bounds: {:?}", rhs);
             return;
         }
-        self.root.insert( rhs);
+        self.root.insert(rhs);
     }
 
     pub fn estimate_net_g(

@@ -48,11 +48,12 @@ impl DivisibleSpace<4> for Space2D {
         pivot: Self::Vector,
     ) -> (Self::Scalar, Self::Vector) {
         let width: Self::Scalar = width / Self::TWO;
+        let half_width: Self::Scalar = width / Self::TWO;
         let pivot_offset = match i {
-            0 => pt2(width, width),
-            1 => pt2(width, -width),
-            2 => pt2(-width, width),
-            3 => pt2(-width, -width),
+            0 => pt2(half_width, half_width),
+            1 => pt2(half_width, -half_width),
+            2 => pt2(-half_width, half_width),
+            3 => pt2(-half_width, -half_width),
             _ => panic!("Invalid subdivision index: {}", i),
         };
         (width, pivot + pivot_offset)

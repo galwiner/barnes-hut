@@ -1,10 +1,9 @@
 use nannou::color::Gradient;
 use nannou::prelude::*;
 
-use crate::drawing::Drawable;
-use crate::physics::barnes_hut::{GravityField, GravityField2D, MassAggregate};
+use crate::drawing::{alpha, Drawable};
+use crate::physics::barnes_hut::GravityField2D;
 use crate::physics::point_mass::PointMass;
-use crate::physics::space_2d::Space2D;
 use crate::simulation;
 use crate::view_state::ViewState;
 
@@ -14,9 +13,9 @@ use super::particle::Particle;
 #[derivative(Default)]
 pub struct Universe {
     particles: Vec<Particle>,
-    bounding_boxes : Vec<Rect>,
+    bounding_boxes: Vec<Rect>,
     #[derivative(Default(value = "1e3"))]
-    pub black_hole_mass: f32
+    pub black_hole_mass: f32,
 }
 
 impl Universe {
@@ -35,29 +34,22 @@ impl Universe {
 }
 
 impl Universe {
-    pub(crate) fn set_black_hole_mass(&mut self, fac:f32) {
+    pub(crate) fn set_black_hole_mass(&mut self, fac: f32) {
         self.black_hole_mass = fac;
-        info!(
-            "Blackhole mass is now: {}",
-            self.black_hole_mass
-        );
+        info!("Blackhole mass is now: {}", self.black_hole_mass);
     }
 }
 
 impl Universe {
     pub(crate) fn multiply_black_hole_mass(&mut self, fac: f32) {
-         self.black_hole_mass *= fac;
-        info!(
-            "Blackhole mass is now: {}",
-            self.black_hole_mass
-        );
+        self.black_hole_mass *= fac;
+        info!("Blackhole mass is now: {}", self.black_hole_mass);
     }
 }
 
 impl Universe {
     pub const G: f32 = 1e2;
     pub const THETA: f32 = 0.7;
-
 
     pub fn new(num_particles: usize) -> Self {
         let mut new = Self::default();
@@ -84,8 +76,7 @@ impl Universe {
     }
 
     fn get_bounding_box(&self) -> Rect {
-        self
-            .particles
+        self.particles
             .iter()
             .fold(Rect::from_w_h(0.0, 0.0), |bounds, particle| {
                 bounds.stretch_to(particle.position)
@@ -94,9 +85,12 @@ impl Universe {
 
     fn gravity_field(&self) -> GravityField2D {
         let bounds = self.get_bounding_box();
-        let size = bounds.w().max(bounds.h());
+        let (l, r, b, t) = bounds.l_r_b_t();
+        let max_abs_dimension = l.abs().max(r.abs()).max(b.abs()).max(t.abs());
+        let min_power_2 = at_least!(1.0, max_abs_dimension).log2().ceil() as i32;
+        let width = 2.0f32.powi(min_power_2 + 1);
 
-        GravityField2D::new(size)
+        GravityField2D::new(width)
     }
 }
 
@@ -107,7 +101,7 @@ impl Drawable for Universe {
             let gradient = get_gradient();
             for particle in &self.particles {
                 if bounds.contains(particle.position) {
-                    particle.draw(draw, view_state,&gradient,normalization_v);
+                    particle.draw(draw, view_state, &gradient, normalization_v);
                 }
             }
         }
@@ -116,8 +110,8 @@ impl Drawable for Universe {
                 draw.rect()
                     .xy(bb.xy())
                     .wh(bb.wh())
-                    .stroke_weight(1.0)
-                    .stroke_color(RED)
+                    .stroke_weight(1.0 / view_state.scale)
+                    .stroke_color(alpha(RED, 0.2))
                     .no_fill();
             });
         }
@@ -126,9 +120,9 @@ impl Drawable for Universe {
 
 fn get_gradient() -> Gradient<LinSrgb> {
     Gradient::new(vec![
-            LinSrgb::new(0.0, 0.0, 1.0),
-            LinSrgb::new(1.0, 0.0, 0.0)
-        ])
+        LinSrgb::new(0.0, 0.0, 1.0),
+        LinSrgb::new(1.0, 0.0, 0.0),
+    ])
 }
 
 fn get_max_velocity(particles: &Vec<Particle>) -> f32 {
