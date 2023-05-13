@@ -54,7 +54,7 @@ or the `Run wasm in chrome` CLion / IntelliJ run configuration.
 
 - [X] Draw tree bounding boxes again
     - [ ] Better: highlight bodies and bounding boxes contributing to g calculation at the mouse location
-- [ ] Easy way to tune parameters at runtime, e.g. https://github.com/tversteeg/const-tweaker
+- [X] Easy way to tune parameters at runtime, e.g. https://github.com/tversteeg/const-tweaker
     - [ ] Extract a `Config` struct - possibly separating physics and app / graphics config
 - [X] wasm build
     - [X] Fix: Logging in wasm - want to control log level per package as with env_logger
