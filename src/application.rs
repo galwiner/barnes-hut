@@ -3,6 +3,7 @@ use nannou::prelude::*;
 use nannou::wgpu::{Backends, DeviceDescriptor, Limits};
 use task::block_on;
 use MouseScrollDelta::*;
+use nannou_egui::{Egui, egui};
 
 use crate::drawing::{alpha, draw_rect, Drawable};
 use crate::physics::Universe;
@@ -12,6 +13,7 @@ use crate::view_state::ViewState;
 struct AppModel {
     simulation: Simulation<Universe>,
     view_state: ViewState,
+    egui: Egui,
 }
 
 const INITIAL_PARTICLE_COUNT: usize = 1000;
@@ -31,19 +33,26 @@ pub async fn run_async() {
 }
 
 async fn init_nannou_app(app: &App) -> AppModel {
-    create_window(app).await;
+    let id = create_window(app).await;
+    let window = app.window(id).unwrap();
+    //this is identical to https://github.com/nannou-org/nannou/blob/master/examples/ui/egui/circle_packing.rs
+    //don't get why there's a type error
+    let egui = Egui::from_window(&window);
+
     AppModel {
+        egui,
         simulation: Simulation::new(Universe::new(INITIAL_PARTICLE_COUNT)),
         view_state: Default::default(),
     }
 }
 
-async fn create_window(app: &App) {
+async fn create_window(app: &App) -> WindowId {
     app.new_window()
         .title("Barnes-Hut Simulation")
-        //.size(1200, 800)
+        // .size(1200, 800)
         .view(view)
         .event(event_handler)
+        .raw_event(raw_window_event)
         .device_descriptor(DeviceDescriptor {
             limits: Limits {
                 max_texture_dimension_2d: 8192,
@@ -53,13 +62,29 @@ async fn create_window(app: &App) {
         })
         .build_async()
         .await
-        .unwrap();
+        .unwrap()
+
 }
 
 fn update(_app: &App, model: &mut AppModel, _: Update) {
+    let egui = &mut model.egui;
+    let ctx = egui.begin_frame();
+        let view_state = model.view_state;
+
+    egui::Window::new("Settings").show(&ctx, |ui| {
+        // view state
+        ui.label("view state:");
+        ui.add(egui::RadioButton::new(view_state.draw_particles,"particles"));
+        //theta slider
+        ui.label("Theta:");
+        ui.add(egui::Slider::new(&mut model.simulation.model.theta, 0.0..=1.0));
+    });
     model.simulation.update();
 }
-
+fn raw_window_event(_app: &App, model: &mut AppModel, event: &nannou::winit::event::WindowEvent) {
+    // Let egui handle things like keyboard and mouse input.
+    model.egui.handle_raw_event(event);
+}
 fn view(app: &App, app_model: &AppModel, frame: Frame) {
     let app_draw = app.draw();
     app_draw.background().color(BLACK);
@@ -74,6 +99,8 @@ fn view(app: &App, app_model: &AppModel, frame: Frame) {
     }
     // Write the result of our drawing to the window's frame.
     app_draw.to_frame(app, &frame).unwrap();
+    //ui stuff
+    app_model.egui.draw_to_frame(&frame).unwrap();
 }
 
 fn event_handler(app: &App, model: &mut AppModel, event: WindowEvent) {

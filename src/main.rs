@@ -1,4 +1,5 @@
 extern crate env_logger;
+use nannou_egui::{self};
 
 fn main() {
     configure_logging();
