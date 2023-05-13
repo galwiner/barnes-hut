@@ -16,6 +16,8 @@ pub struct Universe {
     bounding_boxes: Vec<Rect>,
     #[derivative(Default(value = "1e3"))]
     pub black_hole_mass: f32,
+    #[derivative(Default(value = "0.7"))]
+    pub theta: f32,
 }
 
 impl Universe {
@@ -49,7 +51,7 @@ impl Universe {
 
 impl Universe {
     pub const G: f32 = 1e2;
-    pub const THETA: f32 = 0.7;
+    // pub const THETA: f32 = 0.7;
 
     pub fn new(num_particles: usize) -> Self {
         let mut new = Self::default();
@@ -133,7 +135,7 @@ impl simulation::Model for Universe {
 
         self.bounding_boxes = gravity_field.get_bounding_boxes();
         let update_particle = |particle: &mut Particle| {
-            let net_g = gravity_field.estimate_net_g(particle.position, Self::THETA, Self::G);
+            let net_g = gravity_field.estimate_net_g(particle.position, self.theta, Self::G);
             particle.update(dt, net_g);
         };
 
